@@ -13,7 +13,7 @@
 
 Clone the repository:
 
-\`\`\`bash
+\`\`\`cmd
 git clone https://github.com/crosenblum/blint.git
 cd blint
 \`\`\`
