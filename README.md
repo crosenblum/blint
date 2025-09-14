@@ -1,6 +1,6 @@
 # Blint 🚀
 
-**Blint** is a lightweight, easy-to-use linter for Windows batch files (`.bat`). It helps you spot syntax errors, enforce best practices, and write cleaner, more reliable batch scripts. Even in 2025, batch files deserve some TLC! 💻
+**Blint** is a lightweight, easy-to-use linter for Windows batch files (`.bat` and `.cmd`). It helps you spot syntax errors, enforce best practices, and write cleaner, more reliable batch scripts. Even in 2025, batch files deserve some TLC! 💻
 
 I created Blint because I love linters for other languages, and batch files were feeling neglected. Sure, batch might be &quot;vintage,&quot; but let's make it awesome. Suggestions welcome – feel free to contribute! 😎
 
@@ -36,6 +36,8 @@ Run it from the Command Prompt:
 
 ```cmd
 python blint.py path\to\script.bat
+# or
+python blint.py path\to\script.cmd
 ```
 
 For a summary view, add the `--summary` flag.

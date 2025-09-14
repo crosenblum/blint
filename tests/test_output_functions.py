@@ -1,19 +1,13 @@
 ﻿"""Tests for output and utility functions."""
 
+from collections import defaultdict
 import io
 import queue
 import sys
 import threading
-from collections import defaultdict
 from typing import Callable, DefaultDict, List, Tuple, Union
 
-from blint import (
-    group_issues,
-    print_help,
-    print_summary,
-    print_detailed,
-    print_severity_info
-)
+from blint import group_issues, print_detailed, print_help, print_severity_info, print_summary
 
 
 class TestGroupIssues:
@@ -31,7 +25,7 @@ class TestGroupIssues:
         issues = [
             (1, "Missing '@echo off' at top of file"),
             (5, "Missing '@echo off' at top of file"),
-            (10, "Missing '@echo off' at top of file")
+            (10, "Missing '@echo off' at top of file"),
         ]
         grouped = group_issues(issues)
         assert len(grouped) == 1
@@ -45,7 +39,7 @@ class TestGroupIssues:
             (3, "Unquoted variable usage"),
             (5, "Line exceeds 120 characters"),
             (7, "Unquoted variable usage"),
-            (9, "Trailing whitespace")
+            (9, "Trailing whitespace"),
         ]
         grouped = group_issues(issues)
         assert len(grouped) == 4
@@ -62,7 +56,7 @@ class TestGroupIssues:
             (5, "'goto label1' has no matching label"),
             (7, "'goto label2' has no matching label"),
             (9, "Usage of undefined variable x"),
-            (11, "Usage of undefined variable y")
+            (11, "Usage of undefined variable y"),
         ]
         grouped = group_issues(issues)
 
@@ -369,7 +363,7 @@ class TestOutputFormatting:
 
         def worker(
             func: Callable[[DefaultDict[str, List[int]]], None],
-            grouped_data: DefaultDict[str, List[int]]
+            grouped_data: DefaultDict[str, List[int]],
         ) -> None:
             try:
                 # Capture output instead of printing to console
@@ -378,9 +372,9 @@ class TestOutputFormatting:
                 func(grouped_data)
                 output = sys.stdout.getvalue()
                 sys.stdout = old_stdout
-                results_queue.put(('success', len(output)))
+                results_queue.put(("success", len(output)))
             except Exception as exception:
-                results_queue.put(('error', str(exception)))
+                results_queue.put(("error", str(exception)))
 
         # Test multiple output functions concurrently
         functions = [print_summary, print_detailed, print_severity_info]
@@ -402,5 +396,5 @@ class TestOutputFormatting:
 
         assert len(results) == 3
         for result_type, result_data in results:
-            assert result_type == 'success'
+            assert result_type == "success"
             assert isinstance(result_data, int)  # Length of output

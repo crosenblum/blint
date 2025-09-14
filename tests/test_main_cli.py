@@ -2,12 +2,12 @@
 
 import io
 import os
+from pathlib import Path
 import subprocess
 import sys
 import tempfile
-from pathlib import Path
-from typing import Optional, TYPE_CHECKING, Protocol
 from types import TracebackType
+from typing import TYPE_CHECKING, Optional, Protocol
 from unittest.mock import patch
 
 from blint import main
@@ -18,14 +18,15 @@ if TYPE_CHECKING:
 
 class StdoutCaptureProtocol(Protocol):
     """Protocol for stdout capture context manager."""
-    def __enter__(self) -> 'StdoutCaptureProtocol':
+
+    def __enter__(self) -> "StdoutCaptureProtocol":
         """Enter context manager."""
 
     def __exit__(
         self,
         exc_type: Optional[type[BaseException]],
         exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType]
+        exc_tb: Optional[TracebackType],
     ) -> None:
         """Exit context manager."""
 
@@ -38,13 +39,15 @@ class TestMainFunction:
 
     def capture_stdout(self) -> StdoutCaptureProtocol:
         """Context manager to capture stdout output."""
+
         class StdoutCapture:
             """Context manager for capturing stdout output."""
+
             def __init__(self) -> None:
                 self.captured_output: Optional[io.StringIO] = None
                 self.old_stdout: object = None
 
-            def __enter__(self) -> 'StdoutCapture':
+            def __enter__(self) -> "StdoutCapture":
                 self.old_stdout = sys.stdout
                 sys.stdout = self.captured_output = io.StringIO()
                 return self
@@ -53,7 +56,7 @@ class TestMainFunction:
                 self,
                 exc_type: Optional[type[BaseException]],
                 exc_val: Optional[BaseException],
-                exc_tb: Optional[TracebackType]
+                exc_tb: Optional[TracebackType],
             ) -> None:
                 sys.stdout = self.old_stdout
 
@@ -66,12 +69,12 @@ class TestMainFunction:
     def create_temp_batch_file(self, content: str) -> str:
         """Helper method to create a temporary batch file."""
         with tempfile.NamedTemporaryFile(
-            mode='w', suffix='.bat', delete=False, encoding='utf-8'
+            mode="w", suffix=".bat", delete=False, encoding="utf-8"
         ) as temp_file:
             temp_file.write(content)
             return temp_file.name
 
-    @patch('sys.argv', ['blint.py'])
+    @patch("sys.argv", ["blint.py"])
     def test_main_no_arguments(self) -> None:
         """Test main function with no arguments shows help."""
         with self.capture_stdout() as captured:
@@ -81,7 +84,7 @@ class TestMainFunction:
         assert "Batch Linter - Help Menu" in output
         assert "Usage:" in output
 
-    @patch('sys.argv', ['blint.py', '--help'])
+    @patch("sys.argv", ["blint.py", "--help"])
     def test_main_help_flag(self) -> None:
         """Test main function with --help flag."""
         with self.capture_stdout() as captured:
@@ -93,7 +96,7 @@ class TestMainFunction:
 
     def test_main_nonexistent_file(self) -> None:
         """Test main function with non-existent file."""
-        with patch('sys.argv', ['blint.py', 'nonexistent.bat']):
+        with patch("sys.argv", ["blint.py", "nonexistent.bat"]):
             with self.capture_stdout() as captured:
                 main()
                 output = captured.getvalue()
@@ -103,12 +106,12 @@ class TestMainFunction:
 
     def test_main_non_bat_file(self) -> None:
         """Test main function with non-.bat file."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as temp_file:
             temp_file.write("test content")
             temp_file_path = temp_file.name
 
         try:
-            with patch('sys.argv', ['blint.py', temp_file_path]):
+            with patch("sys.argv", ["blint.py", temp_file_path]):
                 with self.capture_stdout() as captured:
                     main()
                     output = captured.getvalue()
@@ -119,15 +122,15 @@ class TestMainFunction:
 
     def test_main_valid_batch_file(self) -> None:
         """Test main function with valid batch file."""
-        content = '''@echo off
+        content = """@echo off
 echo Hello World
 set "var=test value"
 echo %var%
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
 
         try:
-            with patch('sys.argv', ['blint.py', temp_file]):
+            with patch("sys.argv", ["blint.py", temp_file]):
                 with self.capture_stdout() as captured:
                     main()
                     output = captured.getvalue()
@@ -139,14 +142,14 @@ echo %var%
 
     def test_main_with_summary_flag(self) -> None:
         """Test main function with --summary flag."""
-        content = '''@echo off
+        content = """@echo off
 echo Hello World
 set var=unquoted
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
 
         try:
-            with patch('sys.argv', ['blint.py', temp_file, '--summary']):
+            with patch("sys.argv", ["blint.py", temp_file, "--summary"]):
                 with self.capture_stdout() as captured:
                     main()
                     output = captured.getvalue()
@@ -160,13 +163,13 @@ set var=unquoted
 
     def test_main_with_severity_flag(self) -> None:
         """Test main function with --severity flag."""
-        content = '''@echo off
+        content = """@echo off
 echo Hello World
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
 
         try:
-            with patch('sys.argv', ['blint.py', temp_file, '--severity']):
+            with patch("sys.argv", ["blint.py", temp_file, "--severity"]):
                 with self.capture_stdout() as captured:
                     main()
                     output = captured.getvalue()
@@ -178,15 +181,15 @@ echo Hello World
 
     def test_main_with_multiple_flags(self) -> None:
         """Test main function with multiple flags."""
-        content = '''@echo off
+        content = """@echo off
 echo Hello World
 set var=unquoted
 echo %var%
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
 
         try:
-            with patch('sys.argv', ['blint.py', temp_file, '--summary', '--severity']):
+            with patch("sys.argv", ["blint.py", temp_file, "--summary", "--severity"]):
                 with self.capture_stdout() as captured:
                     main()
                     output = captured.getvalue()
@@ -204,7 +207,7 @@ echo %var%
         # Delete the file to simulate FileNotFoundError
         os.unlink(temp_file)
 
-        with patch('sys.argv', ['blint.py', temp_file]):
+        with patch("sys.argv", ["blint.py", temp_file]):
             with self.capture_stdout() as captured:
                 main()
                 output = captured.getvalue()
@@ -218,8 +221,8 @@ echo %var%
         temp_file = self.create_temp_batch_file("@echo off\necho test\n")
 
         try:
-            with patch('blint.lint_batch_file', side_effect=PermissionError("Permission denied")):
-                with patch('sys.argv', ['blint.py', temp_file]):
+            with patch("blint.lint_batch_file", side_effect=PermissionError("Permission denied")):
+                with patch("sys.argv", ["blint.py", temp_file]):
                     with self.capture_stdout() as captured:
                         main()
                         output = captured.getvalue()
@@ -234,9 +237,11 @@ echo %var%
         temp_file = self.create_temp_batch_file("@echo off\necho test\n")
 
         try:
-            with patch('blint.lint_batch_file',
-                      side_effect=UnicodeDecodeError("utf-8", b"", 0, 1, "invalid")):
-                with patch('sys.argv', ['blint.py', temp_file]):
+            with patch(
+                "blint.lint_batch_file",
+                side_effect=UnicodeDecodeError("utf-8", b"", 0, 1, "invalid"),
+            ):
+                with patch("sys.argv", ["blint.py", temp_file]):
                     with self.capture_stdout() as captured:
                         main()
                         output = captured.getvalue()
@@ -254,8 +259,8 @@ echo %var%
         temp_file = self.create_temp_batch_file("@echo off\necho test\n")
 
         try:
-            with patch('blint.lint_batch_file', side_effect=ValueError("Something went wrong")):
-                with patch('sys.argv', ['blint.py', temp_file]):
+            with patch("blint.lint_batch_file", side_effect=ValueError("Something went wrong")):
+                with patch("sys.argv", ["blint.py", temp_file]):
                     with self.capture_stdout() as captured:
                         main()
                         output = captured.getvalue()
@@ -274,16 +279,16 @@ echo %var%
         try:
             # Test with .bat extension recognition
             test_cases = [
-                ['blint.py', temp_file.upper()],  # Uppercase path
-                ['blint.py', temp_file.lower()],  # Lowercase path
-                ['blint.py', '--summary', temp_file],  # Flag before file
-                ['blint.py', temp_file, '--summary'],  # Flag after file
+                ["blint.py", temp_file.upper()],  # Uppercase path
+                ["blint.py", temp_file.lower()],  # Lowercase path
+                ["blint.py", "--summary", temp_file],  # Flag before file
+                ["blint.py", temp_file, "--summary"],  # Flag after file
             ]
 
             for test_argv in test_cases:
                 # Make sure file has .bat extension for recognition
-                if temp_file.endswith('.bat'):
-                    with patch('sys.argv', test_argv):
+                if temp_file.endswith(".bat"):
+                    with patch("sys.argv", test_argv):
                         with self.capture_stdout() as captured:
                             main()
                             output = captured.getvalue()
@@ -300,12 +305,50 @@ echo %var%
         content = "@echo off\necho test\n"
 
         # Create file with mixed case extension
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.BaT', delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".BaT", delete=False) as temp_file:
             temp_file.write(content)
             temp_file_path = temp_file.name
 
         try:
-            with patch('sys.argv', ['blint.py', temp_file_path]):
+            with patch("sys.argv", ["blint.py", temp_file_path]):
+                with self.capture_stdout() as captured:
+                    main()
+                    output = captured.getvalue()
+
+                assert "DETAILED ERRORS:" in output
+        finally:
+            os.unlink(temp_file_path)
+
+    def test_main_cmd_extension(self) -> None:
+        """Test batch file recognition with .cmd extension."""
+        content = "@echo off\necho test\n"
+
+        # Create file with .cmd extension
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".cmd", delete=False) as temp_file:
+            temp_file.write(content)
+            temp_file_path = temp_file.name
+
+        try:
+            with patch("sys.argv", ["blint.py", temp_file_path]):
+                with self.capture_stdout() as captured:
+                    main()
+                    output = captured.getvalue()
+
+                assert "DETAILED ERRORS:" in output
+        finally:
+            os.unlink(temp_file_path)
+
+    def test_main_mixed_case_cmd_extension(self) -> None:
+        """Test batch file recognition with mixed case .cmd extension."""
+        content = "@echo off\necho test\n"
+
+        # Create file with mixed case extension
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".CmD", delete=False) as temp_file:
+            temp_file.write(content)
+            temp_file_path = temp_file.name
+
+        try:
+            with patch("sys.argv", ["blint.py", temp_file_path]):
                 with self.capture_stdout() as captured:
                     main()
                     output = captured.getvalue()
@@ -320,13 +363,13 @@ echo %var%
 
         # Create temp file in current directory
         with tempfile.NamedTemporaryFile(
-            mode='w', suffix='.bat', delete=False, dir='.'
+            mode="w", suffix=".bat", delete=False, dir="."
         ) as temp_file:
             temp_file.write(content)
             temp_filename = os.path.basename(temp_file.name)
 
         try:
-            with patch('sys.argv', ['blint.py', temp_filename]):
+            with patch("sys.argv", ["blint.py", temp_filename]):
                 with self.capture_stdout() as captured:
                     main()
                     output = captured.getvalue()
@@ -338,14 +381,14 @@ echo %var%
 
     def test_main_output_structure(self) -> None:
         """Test the structure and order of main function output."""
-        content = '''echo Missing echo off
+        content = """echo Missing echo off
 set var=unquoted
 echo %var%
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
 
         try:
-            with patch('sys.argv', ['blint.py', temp_file, '--summary']):
+            with patch("sys.argv", ["blint.py", temp_file, "--summary"]):
                 with self.capture_stdout() as captured:
                     main()
                     output = captured.getvalue()
@@ -366,15 +409,15 @@ echo %var%
 
     def test_main_no_issues_found(self) -> None:
         """Test main function behavior when no issues are found."""
-        content = '''@echo off
+        content = """@echo off
 setlocal enabledelayedexpansion
 set "var=properly quoted"
 echo "%var%"
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
 
         try:
-            with patch('sys.argv', ['blint.py', temp_file, '--summary']):
+            with patch("sys.argv", ["blint.py", temp_file, "--summary"]):
                 with self.capture_stdout() as captured:
                     main()
                     output = captured.getvalue()
@@ -386,13 +429,12 @@ echo "%var%"
         finally:
             os.unlink(temp_file)
 
-
     def test_production_ready_main_execution(self) -> None:
         """Test main() function execution in production-like scenario."""
         original_argv = sys.argv
 
         # Create a realistic test batch file
-        content = '''@echo off
+        content = """@echo off
 REM This is a test batch file for production testing
 set "TEST_VAR=Hello World"
 echo %TEST_VAR%
@@ -401,10 +443,10 @@ if exist "somefile.txt" (
 ) else (
     echo File does not exist
 )
-'''
+"""
 
         with tempfile.NamedTemporaryFile(
-            mode='w', suffix='.bat', delete=False, encoding='utf-8'
+            mode="w", suffix=".bat", delete=False, encoding="utf-8"
         ) as temp_file:
             temp_file.write(content)
             temp_file_path = temp_file.name
@@ -413,13 +455,13 @@ if exist "somefile.txt" (
             # Test main with various flag combinations
             test_cases = [
                 [temp_file_path],
-                [temp_file_path, '--summary'],
-                [temp_file_path, '--severity'],
-                [temp_file_path, '--summary', '--severity'],
+                [temp_file_path, "--summary"],
+                [temp_file_path, "--severity"],
+                [temp_file_path, "--summary", "--severity"],
             ]
 
             for test_argv in test_cases:
-                sys.argv = ['blint.py'] + test_argv
+                sys.argv = ["blint.py"] + test_argv
 
                 # Capture output to verify main() executes correctly
                 with self.capture_stdout() as captured:
@@ -441,7 +483,7 @@ class TestCommandLineIntegration:
         """Test integration with pathlib Path objects."""
         content = "@echo off\necho test\n"
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as temp_file:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as temp_file:
             temp_file.write(content)
             temp_file_path = temp_file.name
 
@@ -450,8 +492,8 @@ class TestCommandLineIntegration:
             path_obj = Path(temp_file_path)
             assert path_obj.is_file()
 
-            with patch('sys.argv', ['blint.py', temp_file_path]):
-                with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+            with patch("sys.argv", ["blint.py", temp_file_path]):
+                with patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
                     main()
                     output = mock_stdout.getvalue()
 
@@ -466,21 +508,21 @@ class TestCommandLineIntegration:
             ("PermissionError", PermissionError("Permission denied")),
             ("UnicodeDecodeError", UnicodeDecodeError("utf-8", b"", 0, 1, "invalid")),
             ("TypeError", TypeError("General error")),
-            ("OSError", OSError("OS error"))
+            ("OSError", OSError("OS error")),
         ]
 
         content = "@echo off\necho test\n"
         temp_file = None
 
         try:
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as tf:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as tf:
                 tf.write(content)
                 temp_file = tf.name
 
             for _error_name, error_obj in test_scenarios:
-                with patch('blint.lint_batch_file', side_effect=error_obj):
-                    with patch('sys.argv', ['blint.py', temp_file]):
-                        with patch('sys.stdout', new_callable=io.StringIO) as mock_stdout:
+                with patch("blint.lint_batch_file", side_effect=error_obj):
+                    with patch("sys.argv", ["blint.py", temp_file]):
+                        with patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
                             main()  # Should not raise an exception
                             output = mock_stdout.getvalue()
                             assert "Error:" in output
@@ -491,7 +533,7 @@ class TestCommandLineIntegration:
     def test_main_entry_point_execution(self) -> None:
         """Test the __name__ == '__main__' execution path via subprocess."""
         # Create a test script that simulates running blint as main module
-        test_script_content = '''
+        test_script_content = """
 import sys
 import tempfile
 import os
@@ -512,16 +554,21 @@ finally:
     # Clean up
     if os.path.exists(test_file):
         os.unlink(test_file)
-'''
+"""
 
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as script_file:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as script_file:
             script_file.write(test_script_content)
             script_file_path = script_file.name
 
         try:
             # Execute the script to test the main entry point
-            result = subprocess.run([sys.executable, script_file_path],
-                                  capture_output=True, text=True, timeout=10, check=False)
+            result = subprocess.run(
+                [sys.executable, script_file_path],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
+            )
 
             # Should execute successfully (exit code 0 or 1 for issues found)
             assert result.returncode in [0, 1]
@@ -534,14 +581,14 @@ finally:
         original_argv = sys.argv
 
         # Create a test batch file with various issues for comprehensive testing
-        content = '''echo off
+        content = """echo off
 set UNQUOTED=value
 goto nonexistent
 set "PROPERLY_QUOTED=safe value"
-'''
+"""
 
         with tempfile.NamedTemporaryFile(
-            mode='w', suffix='.bat', delete=False, encoding='utf-8'
+            mode="w", suffix=".bat", delete=False, encoding="utf-8"
         ) as temp_file:
             temp_file.write(content)
             temp_file_path = temp_file.name
@@ -550,16 +597,16 @@ set "PROPERLY_QUOTED=safe value"
             # Test main execution with different argument combinations
             test_cases = [
                 [temp_file_path],
-                [temp_file_path, '--summary'],
-                [temp_file_path, '--severity'],
-                [temp_file_path, '--summary', '--severity'],
+                [temp_file_path, "--summary"],
+                [temp_file_path, "--severity"],
+                [temp_file_path, "--summary", "--severity"],
             ]
 
             for args in test_cases:
-                sys.argv = ['blint.py'] + args
+                sys.argv = ["blint.py"] + args
 
                 # Mock print to capture output without cluttering test output
-                with patch('builtins.print'):
+                with patch("builtins.print"):
                     main()  # This should execute without error
 
         finally:

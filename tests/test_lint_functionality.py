@@ -4,12 +4,7 @@ import os
 import re
 import tempfile
 
-from blint import (
-    lint_batch_file,
-    DANGEROUS_COMMANDS,
-    ERROR_SEVERITY,
-    ERROR_EXPLANATIONS
-)
+from blint import DANGEROUS_COMMANDS, ERROR_EXPLANATIONS, ERROR_SEVERITY, lint_batch_file
 
 
 class TestLintBatchFile:
@@ -18,14 +13,14 @@ class TestLintBatchFile:
     def create_temp_batch_file(self, content: str) -> str:
         """Helper method to create a temporary batch file with given content."""
         with tempfile.NamedTemporaryFile(
-            mode='w', suffix='.bat', delete=False, encoding='utf-8'
+            mode="w", suffix=".bat", delete=False, encoding="utf-8"
         ) as temp_file:
             temp_file.write(content)
             return temp_file.name
 
     def test_perfect_batch_file(self) -> None:
         """Test a perfectly formatted batch file with no issues."""
-        content = '''@echo off
+        content = """@echo off
 setlocal enabledelayedexpansion
 set "var=test value"
 if "%var%"=="test value" (
@@ -36,7 +31,7 @@ for %%i in (1 2 3) do (
 )
 :end_label
 echo Script completed
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
@@ -47,9 +42,9 @@ echo Script completed
 
     def test_missing_echo_off(self) -> None:
         """Test detection of missing @echo off."""
-        content = '''echo This script is missing @echo off
+        content = """echo This script is missing @echo off
 echo Another line
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
@@ -60,11 +55,11 @@ echo Another line
 
     def test_unquoted_variables(self) -> None:
         """Test detection of unquoted variables."""
-        content = '''@echo off
+        content = """@echo off
 set var=test
 echo %var%
 if %var%==test echo Variable matches
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
@@ -75,13 +70,13 @@ if %var%==test echo Variable matches
 
     def test_goto_without_label(self) -> None:
         """Test detection of goto without matching label."""
-        content = '''@echo off
+        content = """@echo off
 echo Starting script
 goto nonexistent_label
 echo This should not be reached
 :existing_label
 echo This label exists
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
@@ -92,13 +87,13 @@ echo This label exists
 
     def test_goto_with_existing_label(self) -> None:
         """Test goto with existing label (should not trigger error)."""
-        content = '''@echo off
+        content = """@echo off
 echo Starting script
 goto existing_label
 echo This should not be reached
 :existing_label
 echo This label exists
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
@@ -109,12 +104,12 @@ echo This label exists
 
     def test_duplicate_labels(self) -> None:
         """Test detection of duplicate labels."""
-        content = '''@echo off
+        content = """@echo off
 :label1
 echo First occurrence
 :label1
 echo Second occurrence (duplicate)
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
@@ -125,11 +120,11 @@ echo Second occurrence (duplicate)
 
     def test_if_without_comparison_operator(self) -> None:
         """Test detection of if statements without == operator."""
-        content = '''@echo off
+        content = """@echo off
 if exist file.txt echo File exists
 if defined var echo Variable is defined
 if "%var%" echo This is missing ==
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
@@ -144,12 +139,12 @@ if "%var%" echo This is missing ==
 
     def test_dangerous_commands(self) -> None:
         """Test detection of potentially dangerous commands."""
-        content = '''@echo off
+        content = """@echo off
 del *.*
 format c:
 shutdown /s /t 0
 rmdir /s /q C:\\temp
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
@@ -161,10 +156,10 @@ rmdir /s /q C:\\temp
     def test_long_lines(self) -> None:
         """Test detection of lines exceeding 120 characters."""
         long_line = "echo " + "x" * 120
-        content = f'''@echo off
+        content = f"""@echo off
 {long_line}
 echo Normal line
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
@@ -175,30 +170,32 @@ echo Normal line
 
     def test_delayed_expansion_without_enablement(self) -> None:
         """Test detection of delayed expansion usage without enablement."""
-        content = '''@echo off
+        content = """@echo off
 set var=test
 echo !var!
 set count=0
 for /l %%i in (1,1,5) do (
     set /a count=!count!+1
 )
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
             error_messages = [msg for _, msg in issues]
-            assert any("Delayed expansion used without 'setlocal enabledelayedexpansion'" in msg
-                      for msg in error_messages)
+            assert any(
+                "Delayed expansion used without 'setlocal enabledelayedexpansion'" in msg
+                for msg in error_messages
+            )
         finally:
             os.unlink(temp_file)
 
     def test_delayed_expansion_with_enablement(self) -> None:
         """Test delayed expansion with proper enablement (should not trigger error)."""
-        content = '''@echo off
+        content = """@echo off
 setlocal enabledelayedexpansion
 set var=test
 echo !var!
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
@@ -209,30 +206,31 @@ echo !var!
 
     def test_unescaped_special_characters(self) -> None:
         """Test detection of unescaped special characters outside quotes."""
-        content = '''@echo off
+        content = """@echo off
 echo This has an unescaped & character
 echo "This & character is properly quoted"
 echo This has unescaped | pipe
 echo This has unescaped > redirect
 echo This has properly escaped ^& character
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
             error_messages = [msg for _, msg in issues]
             # Should detect unescaped special characters
-            special_char_issues = [msg for msg in error_messages
-                                 if "Unescaped special character outside quotes" in msg]
+            special_char_issues = [
+                msg for msg in error_messages if "Unescaped special character outside quotes" in msg
+            ]
             assert len(special_char_issues) > 0
         finally:
             os.unlink(temp_file)
 
     def test_malformed_for_loop(self) -> None:
         """Test detection of malformed for loops missing 'do'."""
-        content = '''@echo off
+        content = """@echo off
 for %%i in (1 2 3) echo %%i
 for /l %%j in (1,1,5) do echo %%j
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
@@ -243,10 +241,10 @@ for /l %%j in (1,1,5) do echo %%j
 
     def test_trailing_whitespace(self) -> None:
         """Test detection of trailing whitespace."""
-        content = '''@echo off
+        content = """@echo off
 echo This line has trailing spaces   
 echo This line is clean
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
@@ -257,11 +255,11 @@ echo This line is clean
 
     def test_unsafe_set_command(self) -> None:
         """Test detection of potentially unsafe set commands."""
-        content = '''@echo off
+        content = """@echo off
 set var=unquoted value
 set "quoted_var=safe value"
 set /a num=5
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
@@ -272,12 +270,12 @@ set /a num=5
 
     def test_undefined_variable_usage(self) -> None:
         """Test detection of undefined variable usage."""
-        content = '''@echo off
+        content = """@echo off
 set defined_var=value
 echo %defined_var%
 echo %undefined_var%
 echo !another_undefined!
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
@@ -288,12 +286,12 @@ echo !another_undefined!
 
     def test_mismatched_quotes(self) -> None:
         """Test detection of mismatched quotes."""
-        content = '''@echo off
+        content = """@echo off
 echo "This string has matching quotes"
 echo "This string has mismatched quotes
 echo 'Single quotes are less common'
 echo "Another mismatched quote
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
@@ -315,7 +313,7 @@ echo "Another mismatched quote
 
     def test_complex_realistic_scenario(self) -> None:
         """Test a complex, realistic batch file scenario."""
-        content = '''@echo off
+        content = """@echo off
 setlocal enabledelayedexpansion
 set "source_dir=C:\\Source"
 set "backup_dir=C:\\Backup"
@@ -357,14 +355,15 @@ exit /b 1
 
 :end
 echo Process finished
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
             # This should be a well-formed script with minimal issues
             # Filter out any style-only issues
             critical_issues = [
-                issue for issue in issues
+                issue
+                for issue in issues
                 if ERROR_SEVERITY.get(issue[1], "UNKNOWN") in ["CRITICAL", "WARNING"]
             ]
             # Allow for issues that the linter correctly identifies
@@ -377,14 +376,14 @@ echo Process finished
         """Test that all dangerous command patterns are properly detected."""
         for pattern in DANGEROUS_COMMANDS:
             # Create content that would match this pattern
-            if 'del' in pattern:
-                test_content = '@echo off\ndel *.*\n'
-            elif 'format' in pattern:
-                test_content = '@echo off\nformat c:\n'
-            elif 'shutdown' in pattern:
-                test_content = '@echo off\nshutdown\n'
-            elif 'rmdir' in pattern:
-                test_content = '@echo off\nrmdir /s /q C:\\\n'
+            if "del" in pattern:
+                test_content = "@echo off\ndel *.*\n"
+            elif "format" in pattern:
+                test_content = "@echo off\nformat c:\n"
+            elif "shutdown" in pattern:
+                test_content = "@echo off\nshutdown\n"
+            elif "rmdir" in pattern:
+                test_content = "@echo off\nrmdir /s /q C:\\\n"
             else:
                 continue
 
@@ -392,8 +391,9 @@ echo Process finished
             try:
                 issues = lint_batch_file(temp_file)
                 error_messages = [msg for _, msg in issues]
-                assert any("Potentially dangerous command" in msg for msg in error_messages), \
-                    f"Pattern {pattern} was not detected"
+                assert any(
+                    "Potentially dangerous command" in msg for msg in error_messages
+                ), f"Pattern {pattern} was not detected"
             finally:
                 os.unlink(temp_file)
 
@@ -404,7 +404,7 @@ class TestErrorDictionaries:
     def create_temp_batch_file(self, content: str) -> str:
         """Helper method to create a temporary batch file with given content."""
         with tempfile.NamedTemporaryFile(
-            mode='w', suffix='.bat', delete=False, encoding='utf-8'
+            mode="w", suffix=".bat", delete=False, encoding="utf-8"
         ) as temp_file:
             temp_file.write(content)
             return temp_file.name
@@ -425,38 +425,42 @@ class TestErrorDictionaries:
             "Duplicate label",
             "Potential unsafe 'set' command usage",
             "Usage of undefined variable",
-            "Mismatched quotes detected"
+            "Mismatched quotes detected",
         }
 
         for error_type in expected_errors:
             assert error_type in ERROR_SEVERITY, f"Missing severity for: {error_type}"
-            assert ERROR_SEVERITY[error_type] in ["CRITICAL", "WARNING", "STYLE"], \
-                f"Invalid severity level for {error_type}: {ERROR_SEVERITY[error_type]}"
+            assert ERROR_SEVERITY[error_type] in [
+                "CRITICAL",
+                "WARNING",
+                "STYLE",
+            ], f"Invalid severity level for {error_type}: {ERROR_SEVERITY[error_type]}"
 
     def test_error_explanations_completeness(self) -> None:
         """Test that all error types have explanations."""
         for error_type in ERROR_SEVERITY:
             assert error_type in ERROR_EXPLANATIONS, f"Missing explanation for: {error_type}"
-            assert len(ERROR_EXPLANATIONS[error_type]) > 0, \
-                f"Empty explanation for: {error_type}"
-            assert isinstance(ERROR_EXPLANATIONS[error_type], str), \
-                f"Non-string explanation for: {error_type}"
+            assert len(ERROR_EXPLANATIONS[error_type]) > 0, f"Empty explanation for: {error_type}"
+            assert isinstance(
+                ERROR_EXPLANATIONS[error_type], str
+            ), f"Non-string explanation for: {error_type}"
 
     def test_severity_levels_are_valid(self) -> None:
         """Test that all severity levels are valid."""
         valid_levels = {"CRITICAL", "WARNING", "STYLE"}
         for error_type, severity in ERROR_SEVERITY.items():
-            assert severity in valid_levels, \
-                f"Invalid severity level '{severity}' for error type '{error_type}'"
+            assert (
+                severity in valid_levels
+            ), f"Invalid severity level '{severity}' for error type '{error_type}'"
 
     def test_properly_quoted_set_commands_no_issues(self) -> None:
         """Test that properly quoted set commands don't trigger unsafe usage warnings."""
-        content = '''@echo off
+        content = """@echo off
 set "PROPERLY_QUOTED=value with spaces"
 set "ANOTHER_VAR=another safe value"
 set "PATH_VAR=C:\\Program Files\\Test"
 echo Done
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
@@ -524,7 +528,7 @@ echo Done
 
     def test_variable_definition_and_usage_comprehensive(self) -> None:
         """Test comprehensive variable definition and usage scenarios."""
-        content = '''@echo off
+        content = """@echo off
 set var1=value1
 set VAR2=value2
 set "var3=value3"
@@ -537,7 +541,7 @@ set /a numeric_var=5
 echo %numeric_var%
 set /p input_var=Enter value:
 echo %input_var%
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
@@ -557,7 +561,7 @@ echo %input_var%
 
     def test_comprehensive_quote_scenarios(self) -> None:
         """Test comprehensive quote handling scenarios."""
-        content = '''@echo off
+        content = """@echo off
 echo "Simple quoted string"
 echo "String with ""embedded"" quotes"
 echo String with unmatched quote "
@@ -565,7 +569,7 @@ echo "Another unmatched quote
 echo 'Single quotes'
 echo Mixed "quote' types
 echo "Properly closed quote"
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
@@ -578,7 +582,7 @@ echo "Properly closed quote"
 
     def test_special_characters_comprehensive(self) -> None:
         """Test comprehensive special character handling."""
-        content = '''@echo off
+        content = """@echo off
 echo "Special & characters & in & quotes"
 echo Special & character & outside & quotes
 echo Escaped ^& character
@@ -588,13 +592,14 @@ echo Unescaped | pipe
 echo file.txt > output.txt
 echo "file.txt > output.txt"
 echo Escaped ^> character
-'''
+"""
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
             issue_messages = [msg for _, msg in issues]
-            special_char_issues = [msg for msg in issue_messages
-                                 if "Unescaped special character" in msg]
+            special_char_issues = [
+                msg for msg in issue_messages if "Unescaped special character" in msg
+            ]
             # Should detect unescaped special characters
             assert len(special_char_issues) > 0
         finally:
@@ -605,15 +610,15 @@ echo Escaped ^> character
 
         # Test each pattern with multiple examples
         test_cases = [
-            (r'del\s+\*/\*|\*\.?\*', ['del *.*', 'DEL */*']),
-            (r'format\s+[a-z]:', ['format c:', 'format a:', 'format d:']),
-            (r'shutdown', ['shutdown', 'SHUTDOWN', 'shutdown /s']),
-            (r'rmdir\s+/s\s+/q\s+', ['rmdir /s /q temp', 'RMDIR /S /Q folder']),
+            (r"del\s+\*/\*|\*\.?\*", ["del *.*", "DEL */*"]),
+            (r"format\s+[a-z]:", ["format c:", "format a:", "format d:"]),
+            (r"shutdown", ["shutdown", "SHUTDOWN", "shutdown /s"]),
+            (r"rmdir\s+/s\s+/q\s+", ["rmdir /s /q temp", "RMDIR /S /Q folder"]),
         ]
 
         for pattern, examples in test_cases:
             compiled_pattern = re.compile(pattern, re.IGNORECASE)
             for example in examples:
-                assert compiled_pattern.search(example), (
-                    f"Pattern '{pattern}' should match '{example}'"
-                )
+                assert compiled_pattern.search(
+                    example
+                ), f"Pattern '{pattern}' should match '{example}'"

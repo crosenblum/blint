@@ -1,11 +1,13 @@
 ﻿"""pytest configuration and shared fixtures for blint tests."""
 
-import warnings
 from typing import Generator
+import warnings
+
 import pytest
 
 try:
     import coverage.misc
+
     COVERAGE_AVAILABLE = True
 except ImportError:
     COVERAGE_AVAILABLE = False
@@ -22,7 +24,7 @@ def suppress_test_warnings() -> Generator[None, None, None]:
     warnings.filterwarnings(
         "ignore",
         message="File .* was read using .* encoding instead of UTF-8.*",
-        category=UserWarning
+        category=UserWarning,
     )
 
     # Suppress coverage warnings about configuration

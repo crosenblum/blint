@@ -1,14 +1,14 @@
 ﻿"""Blint - A lightweight batch file linter for Windows.
 
-This module provides functionality to lint Windows batch files (.bat)
+This module provides functionality to lint Windows batch files (.bat and .cmd)
 for common syntax errors, style issues, and potential pitfalls.
 """
 
-import re
-import sys
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Tuple, DefaultDict, Optional
+import re
+import sys
+from typing import DefaultDict, Dict, List, Optional, Tuple
 import warnings
 
 __version__ = "1.0.0"
@@ -128,16 +128,13 @@ ERROR_EXPLANATIONS: Dict[str, str] = {
         "issues with spaces or special characters."
     ),
     "'goto' has no matching label": (
-        "A 'goto' statement points to a label that does not exist, "
-        "which causes runtime errors."
+        "A 'goto' statement points to a label that does not exist, " "which causes runtime errors."
     ),
     "'if' statement missing comparison operator '=='": (
-        "An 'if' statement must have a comparison operator '==' "
-        "to work correctly."
+        "An 'if' statement must have a comparison operator '==' " "to work correctly."
     ),
     "Potentially dangerous command": (
-        "Commands like 'del *.*' or 'format c:' can cause data loss "
-        "or system shutdowns."
+        "Commands like 'del *.*' or 'format c:' can cause data loss " "or system shutdowns."
     ),
     "Line exceeds 120 characters": (
         "Lines longer than 120 characters are hard to read and maintain."
@@ -154,12 +151,10 @@ ERROR_EXPLANATIONS: Dict[str, str] = {
         "A 'for' loop must contain the 'do' keyword for proper execution."
     ),
     "Trailing whitespace": (
-        "Trailing spaces at the end of a line can cause subtle errors "
-        "and should be removed."
+        "Trailing spaces at the end of a line can cause subtle errors " "and should be removed."
     ),
     "Duplicate label": (
-        "Multiple labels with the same name can cause unpredictable "
-        "'goto' behavior."
+        "Multiple labels with the same name can cause unpredictable " "'goto' behavior."
     ),
     "Potential unsafe 'set' command usage": (
         "Using 'set' to assign variables without proper quoting or "
@@ -185,7 +180,7 @@ Usage:
   python blint.py <batch_file> [options]
 
 Arguments:
-  <batch_file>        Path to the batch (.bat) file to lint.
+  <batch_file>        Path to the batch (.bat or .cmd) file to lint.
 
 Options:
   --summary           Show a summary section with total errors and most common error.
@@ -196,13 +191,13 @@ Examples:
   python blint.py myscript.bat
       Shows detailed error list only (default).
 
-  python blint.py myscript.bat --summary
+  python blint.py myscript.cmd --summary
       Shows summary and detailed errors.
 
   python blint.py myscript.bat --severity
       Shows detailed errors plus error severity.
 
-  python blint.py myscript.bat --summary --severity
+  python blint.py myscript.cmd --summary --severity
       Shows summary, detailed errors, and severity info.
 
 If no <batch_file> is specified or '--help' is passed, this help menu will be displayed.
@@ -289,9 +284,9 @@ def _check_delayed_expansion(
     stripped = line.strip()
 
     if not delayed_expansion_enabled and re.search(r"![A-Z0-9_]+!", stripped, re.IGNORECASE):
-        issues.append((
-            line_num, "Delayed expansion used without 'setlocal enabledelayedexpansion'"
-        ))
+        issues.append(
+            (line_num, "Delayed expansion used without 'setlocal enabledelayedexpansion'")
+        )
 
     return issues
 
@@ -361,7 +356,7 @@ def lint_batch_file(file_path: str) -> List[Tuple[int, str]]:
     """Lint a batch file and return list of issues.
 
     Args:
-        file_path: Path to the batch file to lint
+        file_path: Path to the batch file (.bat or .cmd) to lint
 
     Returns:
         List of tuples containing (line_number, error_message)
@@ -535,7 +530,7 @@ def main() -> None:
     show_summary = False
 
     for arg in sys.argv[1:]:
-        if arg.lower().endswith(".bat"):
+        if arg.lower().endswith((".bat", ".cmd")):
             batch_file = arg
         elif arg == "--summary":
             show_summary = True
