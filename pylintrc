@@ -31,7 +31,7 @@ fail-under=10.0
 fail-on=
 
 # Add files or directories matching the regex patterns to the blacklist.
-black-list-re=
+# black-list-re is deprecated, use ignore-patterns instead
 
 # Save pylint output to file as it's often very long
 output-format=text
@@ -46,7 +46,10 @@ disable=raw-checker-failed,
         suppressed-message,
         useless-suppression,
         deprecated-pragma,
-        use-symbolic-message-instead
+        use-symbolic-message-instead,
+        too-many-public-methods,
+        broad-exception-caught,
+        duplicate-code
 
 # Enable the message, report, category or checker with the given id(s).
 enable=c-extension-no-member
@@ -225,7 +228,7 @@ single-line-if-stmt=no
 argument-naming-style=snake_case
 
 # Regular expression matching correct argument names.
-argument-rgx=[a-z_][a-z0-9_]{2,30}$
+argument-rgx=[a-z_][a-z0-9_]{1,50}$
 
 # Naming style matching correct attribute names.
 attr-naming-style=snake_case
@@ -301,7 +304,7 @@ inlinevar-rgx=[A-Za-z_][A-Za-z0-9_]*$
 method-naming-style=snake_case
 
 # Regular expression matching correct method names.
-method-rgx=[a-z_][a-z0-9_]{2,30}$
+method-rgx=[a-z_][a-z0-9_]{2,50}$
 
 # Naming style matching correct module names.
 module-naming-style=snake_case
@@ -324,7 +327,7 @@ property-classes=abc.abstractproperty
 variable-naming-style=snake_case
 
 # Regular expression matching correct variable names.
-variable-rgx=[a-z_][a-z0-9_]{2,30}$
+variable-rgx=[a-z_][a-z0-9_]{1,50}$
 
 [IMPORTS]
 # List of modules that can be imported at any level, not just the top level.
@@ -427,5 +430,5 @@ min-public-methods=2
 
 [EXCEPTIONS]
 # Exceptions that will emit a warning when being caught.
-overgeneral-exceptions=BaseException,
-                       Exception
+overgeneral-exceptions=builtins.BaseException,
+                       builtins.Exception

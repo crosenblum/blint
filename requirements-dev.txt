@@ -9,6 +9,12 @@ pytest-xdist
 pytest-mock
 pytest-cov
 
+# Additional Testing Packages
+pytest-html
+pytest-json-report
+pytest-benchmark
+pytest-rerunfailures
+
 # Linting
 pylint
 mypy
