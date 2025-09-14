@@ -2,6 +2,86 @@ import re
 import sys
 from collections import defaultdict
 from pathlib import Path
+from typing import List, Tuple, Optional
+import warnings
+
+def read_file_with_encoding_detection(filepath: str) -> Tuple[List[str], str]:
+    """
+    Reads a file with robust encoding detection and fallback mechanisms.
+    
+    Args:
+        filepath: Path to the file to read
+        
+    Returns:
+        Tuple of (lines, encoding_used)
+        
+    Raises:
+        UnicodeDecodeError: If all encoding attempts fail (should be rare)
+        FileNotFoundError: If file doesn't exist
+        PermissionError: If file can't be accessed
+    """
+    # List of encodings to try in order of preference
+    encodings_to_try = [
+        'utf-8',           # Standard UTF-8
+        'utf-8-sig',       # UTF-8 with BOM
+        'latin1',          # ISO 8859-1 (can decode any byte sequence)
+        'cp1252',          # Windows-1252 (common Windows encoding)
+        'iso-8859-1',      # ISO Latin-1
+        'ascii',           # Basic ASCII
+        'cp437',           # Original IBM PC encoding
+        'utf-16',          # UTF-16 with BOM detection
+        'utf-32',          # UTF-32 with BOM detection
+    ]
+    
+    # Try to detect encoding using chardet if available
+    try:
+        import chardet
+        with open(filepath, 'rb') as f:
+            raw_data = f.read()
+        
+        detected = chardet.detect(raw_data)
+        if detected and detected['encoding'] and detected['confidence'] > 0.7:
+            detected_encoding = detected['encoding'].lower()
+            # Add detected encoding to the front of our list if it's not already there
+            if detected_encoding not in [enc.lower() for enc in encodings_to_try]:
+                encodings_to_try.insert(0, detected_encoding)
+            else:
+                # Move detected encoding to front if it exists in our list
+                for i, enc in enumerate(encodings_to_try):
+                    if enc.lower() == detected_encoding:
+                        encodings_to_try.insert(0, encodings_to_try.pop(i))
+                        break
+    except ImportError:
+        # chardet not available, continue with fallback approach
+        pass
+    except Exception:
+        # Any other error in detection, continue with fallback
+        pass
+    
+    # Try each encoding until one works
+    last_exception = None
+    for encoding in encodings_to_try:
+        try:
+            with open(filepath, 'r', encoding=encoding, errors='strict') as f:
+                lines = f.readlines()
+            return lines, encoding
+        except UnicodeDecodeError as e:
+            last_exception = e
+            continue
+        except (LookupError, ValueError) as e:
+            # Encoding not supported or invalid
+            last_exception = e
+            continue
+    
+    # If we get here, all encodings failed - this should be extremely rare
+    # since latin1 can decode any byte sequence
+    if last_exception:
+        raise UnicodeDecodeError(
+            f"All encoding attempts failed for file '{filepath}'. "
+            f"Last error: {last_exception}"
+        )
+    else:
+        raise UnicodeDecodeError(f"Could not read file '{filepath}' with any supported encoding")
 
 DANGEROUS_COMMANDS = [
     r'del\s+\*/\*|\*\.?\*',
@@ -91,8 +171,15 @@ If no <batch_file> is specified or '--help' is passed, this help menu will be di
     print(help_text.strip())
 
 def lint_batch_file(filepath):
-    with open(filepath, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
+    lines, encoding_used = read_file_with_encoding_detection(filepath)
+    
+    # Issue a warning if we had to fall back from UTF-8
+    if encoding_used.lower() not in ['utf-8', 'utf-8-sig']:
+        warnings.warn(
+            f"File '{filepath}' was read using '{encoding_used}' encoding instead of UTF-8. "
+            f"Consider converting the file to UTF-8 for better compatibility.",
+            UserWarning
+        )
 
     issues = []
 
@@ -298,8 +385,27 @@ def main():
         print_help()
         return
 
-    issues = lint_batch_file(batch_file)
-    grouped = group_issues(issues)
+    try:
+        issues = lint_batch_file(batch_file)
+        grouped = group_issues(issues)
+    except UnicodeDecodeError as e:
+        print(f"Error: Could not read the batch file '{batch_file}' due to encoding issues:")
+        print(f"  {e}")
+        print("\nTroubleshooting tips:")
+        print("  1. Ensure the file is a valid text file")
+        print("  2. Try converting the file to UTF-8 encoding")
+        print("  3. Check if the file contains binary data")
+        print("  4. For better encoding detection, install 'chardet': pip install chardet")
+        return
+    except FileNotFoundError:
+        print(f"Error: File '{batch_file}' not found.")
+        return
+    except PermissionError:
+        print(f"Error: Permission denied when trying to read '{batch_file}'.")
+        return
+    except Exception as e:
+        print(f"Error: Unexpected error while processing '{batch_file}': {e}")
+        return
 
     print_detailed(grouped)
 
