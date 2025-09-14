@@ -9,10 +9,10 @@ description = "A lightweight and easy-to-use linter for Windows batch files (.ba
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "crosenblum"}
+    {name = "crosenblum", email = "crosenblum@gmail.com"}
 ]
 maintainers = [
-    {name = "crosenblum"}
+    {name = "crosenblum", email = "crosenblum@gmail.com"}
 ]
 keywords = ["linting", "batch", "bat", "cmd", "windows", "script-analysis", "static-analysis"]
 classifiers = [
@@ -58,7 +58,6 @@ Homepage = "https://github.com/crosenblum/blint"
 Documentation = "https://github.com/crosenblum/blint"
 Repository = "https://github.com/crosenblum/blint.git"
 Issues = "https://github.com/crosenblum/blint/issues"
-Changelog = "https://github.com/crosenblum/blint/blob/main/CHANGELOG.md"
 
 [project.scripts]
 blint = "blint:main"
