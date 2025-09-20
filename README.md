@@ -120,7 +120,7 @@ python blint.py --help
 - **S004**: Trailing whitespace
 - **S005**: Mixed line endings
 - **S006**: Inconsistent variable naming
-- **S007**: BAT extension used instead of CMD
+- **S007**: BAT extension used instead of CMD for newer Windows
 - **S008**: Missing comments for complex code
 - **S009**: Magic numbers used
 - **S010**: Dead code detected
@@ -155,7 +155,7 @@ python blint.py --help
 1. **Always start with `@ECHO OFF`** to prevent command echoing
 2. **Quote all variables** that might contain spaces: `"%VAR%"`
 3. **Check `%ERRORLEVEL%`** after critical operations
-4. **Use `.cmd` extension** instead of `.bat` for modern Windows
+4. **Use `.cmd` extension** instead of `.bat` for scripts targeting Windows 2000 and newer versions
 5. **Set proper exit codes** (`EXIT /b 0` for success, `EXIT /b 1` for errors)
 
 ### Security Guidelines

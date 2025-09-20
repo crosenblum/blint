@@ -629,3 +629,58 @@ echo Escaped ^> character
                     assert "SEC003" in rule_codes, f"Should detect dangerous command: {example}"
                 finally:
                     os.unlink(temp_file)
+
+    def test_bat_extension_recommendation(self) -> None:
+        """Test detection of .bat extension with recommendation to use .cmd."""
+        content = """@echo off
+echo This is a batch file with .bat extension
+exit /b 0
+"""
+        # Create temp file with .bat extension
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".bat", delete=False, encoding="utf-8"
+        ) as temp_file:
+            temp_file.write(content)
+            bat_file = temp_file.name
+
+        try:
+            issues = lint_batch_file(bat_file)
+            rule_codes = [issue.rule.code for issue in issues]
+            assert "S007" in rule_codes  # BAT extension used instead of CMD
+            
+            # Check the context message is specific about Windows versions
+            s007_issues = [issue for issue in issues if issue.rule.code == "S007"]
+            assert len(s007_issues) == 1
+            assert "Windows 2000" in s007_issues[0].context
+        finally:
+            os.unlink(bat_file)
+
+    def test_cmd_extension_no_recommendation(self) -> None:
+        """Test that .cmd extension does not trigger the S007 rule."""
+        content = """@echo off
+echo This is a batch file with .cmd extension
+exit /b 0
+"""
+        # Create temp file with .cmd extension
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".cmd", delete=False, encoding="utf-8"
+        ) as temp_file:
+            temp_file.write(content)
+            cmd_file = temp_file.name
+
+        try:
+            issues = lint_batch_file(cmd_file)
+            rule_codes = [issue.rule.code for issue in issues]
+            assert "S007" not in rule_codes  # Should NOT have BAT extension warning
+        finally:
+            os.unlink(cmd_file)
+
+    def test_s007_rule_properties(self) -> None:
+        """Test that the S007 rule has the correct properties."""
+        rule = RULES["S007"]
+        assert rule.code == "S007"
+        assert rule.severity == RuleSeverity.STYLE
+        assert "newer Windows" in rule.name
+        assert "Windows NT" in rule.explanation or "Windows 2000" in rule.explanation
+        assert "Windows 2000" in rule.recommendation
+        assert "CMD files" in rule.recommendation

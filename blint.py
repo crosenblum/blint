@@ -289,10 +289,12 @@ RULES: Dict[str, Rule] = {
     ),
     "S007": Rule(
         code="S007",
-        name="BAT extension used instead of CMD",
+        name="BAT extension used instead of CMD for newer Windows",
         severity=RuleSeverity.STYLE,
-        explanation="The .cmd file extension is recommended over .bat for modern Windows",
-        recommendation="Consider renaming .bat files to .cmd for better functionality"
+        explanation="The .cmd file extension is recommended over .bat for Windows NT and newer versions (Windows 2000+). "
+                    "CMD files support additional features and have better error handling in newer Windows environments",
+        recommendation="Consider renaming .bat files to .cmd for scripts intended for Windows 2000 and newer versions. "
+                      "CMD files provide better compatibility with modern Windows features and improved error reporting"
     ),
     "S008": Rule(
         code="S008",
@@ -1054,7 +1056,7 @@ def lint_batch_file(file_path: str) -> List[LintIssue]:
         issues.append(LintIssue(
             line_number=1,
             rule=RULES["S007"],
-            context="Consider using .cmd extension instead of .bat"
+            context="Consider using .cmd extension instead of .bat for scripts targeting Windows 2000 and newer"
         ))
 
     # Collect labels and check for duplicates
