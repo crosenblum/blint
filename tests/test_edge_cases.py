@@ -53,7 +53,7 @@ class TestFileEncodingEdgeCases:
     def test_encoding_lookup_error_fallback(self) -> None:
         """Test handling when encoding lookup fails."""
 
-        def mock_open_with_lookup_error(*args, **kwargs):
+        def mock_open_with_lookup_error(*args: object, **kwargs: object) -> object:
             if "encoding" in kwargs:
                 # Simulate LookupError for unsupported encoding
                 if kwargs["encoding"] == "utf-8":
@@ -68,7 +68,7 @@ class TestFileEncodingEdgeCases:
     def test_encoding_value_error_fallback(self) -> None:
         """Test handling when encoding value is invalid."""
 
-        def mock_open_with_value_error(*args, **kwargs):
+        def mock_open_with_value_error(*args: object, **kwargs: object) -> object:
             if "encoding" in kwargs:
                 # Simulate ValueError for invalid encoding
                 if kwargs["encoding"] == "utf-8":
@@ -83,7 +83,7 @@ class TestFileEncodingEdgeCases:
     def test_all_encodings_fail_with_exception(self) -> None:
         """Test when all encodings fail and we have a last exception."""
 
-        def mock_open_always_fail(*args, **kwargs):
+        def mock_open_always_fail(*args: object, **kwargs: object) -> object:
             if "encoding" in kwargs:
                 raise UnicodeDecodeError("test", b"", 0, 1, "test error")
             return mock_open(read_data="test content")(*args, **kwargs)
@@ -112,33 +112,33 @@ class TestSyntaxErrorChecking:
 
     def test_if_exist_with_defined_check(self) -> None:
         """Test IF statement with EXIST and DEFINED keywords."""
-        labels = {}
+        labels: dict[str, int] = {}
         issues = _check_syntax_errors("if defined MYVAR echo found", 1, labels)
         assert len(issues) == 0  # Should not trigger E003
 
     def test_if_statement_with_exist_keyword(self) -> None:
         """Test IF statement with exist keyword."""
-        labels = {}
+        labels: dict[str, int] = {}
         issues = _check_syntax_errors("if exist myfile.txt echo found", 1, labels)
         assert len(issues) == 0  # Should not trigger E003
 
     def test_path_with_single_quotes(self) -> None:
         """Test path validation with single quotes."""
-        labels = {}
+        labels: dict[str, int] = {}
         issues = _check_syntax_errors("copy 'bad|path.txt' dest", 1, labels)
         assert len(issues) == 1
         assert issues[0].rule.code == "E005"
 
     def test_path_with_double_quotes(self) -> None:
         """Test path validation with double quotes."""
-        labels = {}
+        labels: dict[str, int] = {}
         issues = _check_syntax_errors('copy "bad<path.txt", dest', 1, labels)
         assert len(issues) == 1
         assert issues[0].rule.code == "E005"
 
     def test_path_without_invalid_characters(self) -> None:
         """Test path validation without invalid characters."""
-        labels = {}
+        labels: dict[str, int] = {}
         issues = _check_syntax_errors('copy "goodpath.txt" dest', 1, labels)
         path_issues = [i for i in issues if i.rule.code == "E005"]
         assert len(path_issues) == 0
@@ -149,28 +149,28 @@ class TestWarningChecking:
 
     def test_ping_with_parameters_but_no_timeout(self) -> None:
         """Test PING command with parameters but no timeout."""
-        set_vars = set()
+        set_vars: set[str] = set()
         issues = _check_warning_issues("ping google.com", 1, set_vars, False)
         warning_issues = [i for i in issues if i.rule.code == "W006"]
         assert len(warning_issues) == 1
 
     def test_ping_with_proper_timeout(self) -> None:
         """Test PING command with proper timeout."""
-        set_vars = set()
+        set_vars: set[str] = set()
         issues = _check_warning_issues("ping google.com -n 4", 1, set_vars, False)
         warning_issues = [i for i in issues if i.rule.code == "W006"]
         assert len(warning_issues) == 0
 
     def test_setx_path_modification(self) -> None:
         """Test SETX PATH modification detection."""
-        set_vars = set()
+        set_vars: set[str] = set()
         issues = _check_warning_issues("setx PATH %PATH%;C:\\newpath", 1, set_vars, False)
         warning_issues = [i for i in issues if i.rule.code == "W008"]
         assert len(warning_issues) == 1
 
     def test_older_windows_commands(self) -> None:
         """Test detection of older Windows commands."""
-        set_vars = set()
+        set_vars: set[str] = set()
         for cmd in ["choice", "forfiles", "where", "robocopy", "timeout", "icacls"]:
             issues = _check_warning_issues(f"{cmd} /param", 1, set_vars, False)
             warning_issues = [i for i in issues if i.rule.code == "W009"]
@@ -179,7 +179,7 @@ class TestWarningChecking:
 
     def test_architecture_specific_patterns(self) -> None:
         """Test detection of architecture-specific patterns."""
-        set_vars = set()
+        set_vars: set[str] = set()
         test_cases = [
             ("reg query HKLM\\SOFTWARE\\Wow6432Node\\Test", "Wow6432Node"),
             ("copy SysWow64\\file.txt dest", "SysWow64"),
@@ -193,14 +193,14 @@ class TestWarningChecking:
     def test_program_files_x86_pattern_not_matched(self) -> None:
         """Test that Program Files (x86) pattern requires specific format."""
         # The pattern is looking for literal \(x86\) which doesn't match (x86)
-        set_vars = set()
+        set_vars: set[str] = set()
         issues = _check_warning_issues('cd "Program Files (x86)"', 1, set_vars, False)
         warning_issues = [i for i in issues if i.rule.code == "W010"]
         assert len(warning_issues) == 0  # Won't match because pattern expects \\(x86\\)
 
     def test_unicode_problematic_commands(self) -> None:
         """Test detection of Unicode problematic commands."""
-        set_vars = set()
+        set_vars: set[str] = set()
         for cmd in ["type", "echo", "find", "findstr"]:
             issues = _check_warning_issues(f"{cmd} filename", 1, set_vars, False)
             warning_issues = [i for i in issues if i.rule.code == "W011"]
@@ -209,7 +209,7 @@ class TestWarningChecking:
 
     def test_non_ascii_character_detection(self) -> None:
         """Test detection of non-ASCII characters."""
-        set_vars = set()
+        set_vars: set[str] = set()
         issues = _check_warning_issues("echo héllo wørld", 1, set_vars, False)
         warning_issues = [i for i in issues if i.rule.code == "W012"]
         assert len(warning_issues) == 1

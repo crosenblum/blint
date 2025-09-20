@@ -2,6 +2,7 @@
 
 import os
 import tempfile
+from typing import List
 from unittest.mock import mock_open, patch
 import warnings
 
@@ -14,6 +15,7 @@ from blint import (
     lint_batch_file,
     main,
     read_file_with_encoding,
+    LintIssue,
 )
 
 
@@ -23,7 +25,7 @@ class TestRealWorldErrorHandling:
     def test_file_encoding_all_fail_scenario(self) -> None:
         """Test scenario where all encoding attempts fail with different errors."""
 
-        def mock_open_that_always_fails(*args, **kwargs):
+        def mock_open_that_always_fails(*args: object, **kwargs: object) -> object:
             if "rb" in str(args) or "rb" in str(kwargs):
                 # Allow binary read for chardet
                 return mock_open(read_data=b"test data")(*args, **kwargs)
@@ -210,7 +212,7 @@ class TestSpecificEdgeCases:
             "REM Comment with émojis 💻",  # Comment with Unicode
         ]
 
-        set_vars = set()
+        set_vars: set[str] = set()
         for command in test_cases:
             # Should handle Unicode gracefully
             issues = _check_warning_issues(command, 1, set_vars, False)
@@ -263,7 +265,7 @@ class TestMainFunctionEdgeCases:
 
     def test_path_validation_comprehensive(self) -> None:
         """Test comprehensive path validation."""
-        labels = {}
+        labels: dict[str, int] = {}
 
         # Test various invalid path patterns
         invalid_paths = [
@@ -310,7 +312,7 @@ class TestPerformanceAndScalability:
         assert isinstance(issues, list)
 
 
-def lint_batch_file_from_lines(lines: list) -> list:
+def lint_batch_file_from_lines(lines: list[str]) -> List[LintIssue]:
     """Helper function to lint batch file from list of lines."""
     content = "\n".join(lines)
     with tempfile.NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as temp_file:

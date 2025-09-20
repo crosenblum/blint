@@ -8,7 +8,7 @@ import time
 from typing import List
 
 
-from blint import lint_batch_file, read_file_with_encoding
+from blint import lint_batch_file, read_file_with_encoding, LintIssue
 
 
 class TestThreadSafety:
@@ -26,7 +26,7 @@ class TestThreadSafety:
                     temp_file.write(f"@ECHO OFF\necho Test file {i}\nEXIT /B 0\n")
                     test_files.append(temp_file.name)
 
-            def read_file_worker(file_path: str) -> tuple:
+            def read_file_worker(file_path: str) -> tuple[list[str], str]:
                 return read_file_with_encoding(file_path)
 
             # Test concurrent reading
@@ -68,7 +68,7 @@ class TestThreadSafety:
                     temp_file.write(content)
                     test_files.append(temp_file.name)
 
-            def lint_worker(file_path: str) -> List:
+            def lint_worker(file_path: str) -> List[LintIssue]:
                 return lint_batch_file(file_path)
 
             # Test concurrent linting
@@ -96,7 +96,7 @@ class TestThreadSafety:
 
         try:
 
-            def lint_same_file() -> List:
+            def lint_same_file() -> List[LintIssue]:
                 return lint_batch_file(temp_path)
 
             # Multiple threads accessing the same file
@@ -208,7 +208,7 @@ EXIT /B 0
 
         try:
 
-            def concurrent_analysis() -> tuple:
+            def concurrent_analysis() -> tuple[int, int, int, int]:
                 """Perform concurrent analysis that might share data structures."""
                 issues = lint_batch_file(temp_path)
                 return (

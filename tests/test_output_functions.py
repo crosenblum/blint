@@ -5,7 +5,7 @@ import io
 import queue
 import sys
 import threading
-from typing import Callable, List
+from typing import Callable, List, Union
 
 from blint import (
     RULES,
@@ -304,7 +304,7 @@ class TestOutputFormatting:
             self.create_lint_issue(3, "E002"),
         ]
 
-        results_queue: queue.Queue[tuple[str, int | str]] = queue.Queue()
+        results_queue: queue.Queue[tuple[str, Union[int, str]]] = queue.Queue()
 
         def worker(
             func: Callable[[List[LintIssue]], None],

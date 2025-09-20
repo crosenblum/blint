@@ -126,13 +126,11 @@ class TestInputValidation:
     def test_none_file_path(self) -> None:
         """Test validation of None file path."""
         with pytest.raises(ValueError, match="file_path must be a non-empty string"):
-            lint_batch_file(None)  # type: ignore
-
+            lint_batch_file(None)
     def test_non_string_file_path(self) -> None:
         """Test validation of non-string file path."""
         with pytest.raises(ValueError, match="file_path must be a non-empty string"):
-            lint_batch_file(123)  # type: ignore
-
+            lint_batch_file(123)
     def test_nonexistent_file(self) -> None:
         """Test handling of nonexistent file."""
         nonexistent_path = "definitely_does_not_exist.bat"
