@@ -14,11 +14,12 @@ Features:
 Usage:
     import blint
     issues = blint.lint_batch_file("script.bat")
-    
+
 Author: crosenblum
 Version: 1.0.0
 License: MIT
 """
+
 # pylint: disable=too-many-lines
 
 from collections import defaultdict
@@ -42,6 +43,7 @@ logger.setLevel(logging.INFO)
 
 class RuleSeverity(Enum):
     """Rule severity levels."""
+
     ERROR = "Error"
     WARNING = "Warning"
     STYLE = "Style"
@@ -52,11 +54,13 @@ class RuleSeverity(Enum):
 @dataclass
 class Rule:
     """Represents a linting rule with code, explanation, and recommendation."""
+
     code: str
     name: str
     severity: RuleSeverity
     explanation: str
     recommendation: str
+
     def __post_init__(self) -> None:
         """Validate rule after initialization."""
         if not self.code or not isinstance(self.code, str):
@@ -74,9 +78,11 @@ class Rule:
 @dataclass
 class LintIssue:
     """Represents a linting issue found in a batch file."""
+
     line_number: int
     rule: Rule
     context: str = ""  # Additional context about the issue
+
     def __post_init__(self) -> None:
         """Validate issue after initialization."""
         if self.line_number < 1:
@@ -93,376 +99,369 @@ RULES: Dict[str, Rule] = {
         name="Nested parentheses mismatch",
         severity=RuleSeverity.ERROR,
         explanation="Batch scripts have improper nesting or mismatched "
-                    "parentheses which will cause syntax errors",
+        "parentheses which will cause syntax errors",
         recommendation="Ensure all opening parentheses have matching "
-                      "closing parentheses and are properly nested"
+        "closing parentheses and are properly nested",
     ),
     "E002": Rule(
         code="E002",
         name="Missing label for GOTO statement",
         severity=RuleSeverity.ERROR,
         explanation="GOTO statement points to a label that does not exist, "
-                    "which will cause runtime errors",
+        "which will cause runtime errors",
         recommendation="Create the missing label or correct the GOTO "
-                      "statement to point to an existing label"
+        "statement to point to an existing label",
     ),
     "E003": Rule(
         code="E003",
         name="IF statement improper formatting",
         severity=RuleSeverity.ERROR,
         explanation="IF statement has improper spacing or syntax that "
-                    "will prevent correct execution",
-        recommendation="Use proper spacing: IF \"condition\" operator \"value\" command"
+        "will prevent correct execution",
+        recommendation='Use proper spacing: IF "condition" operator "value" command',
     ),
     "E004": Rule(
         code="E004",
         name="IF EXIST syntax mixing",
         severity=RuleSeverity.ERROR,
-        explanation="Mixing IF EXIST syntax with comparison operators "
-                    "creates invalid syntax",
+        explanation="Mixing IF EXIST syntax with comparison operators " "creates invalid syntax",
         recommendation="Use either 'IF EXIST filename' or "
-                      "'IF \"variable\"==\"value\"' but not both together"
+        '\'IF "variable"=="value"\' but not both together',
     ),
     "E005": Rule(
         code="E005",
         name="Invalid path syntax",
         severity=RuleSeverity.ERROR,
-        explanation="Path contains invalid characters or exceeds "
-                    "system length limits",
-        recommendation="Remove invalid characters (<>|\"*?) and ensure "
-                      "path length is under 260 characters"
+        explanation="Path contains invalid characters or exceeds " "system length limits",
+        recommendation='Remove invalid characters (<>|"*?) and ensure '
+        "path length is under 260 characters",
     ),
     "E006": Rule(
         code="E006",
         name="Undefined variable reference",
         severity=RuleSeverity.ERROR,
         explanation="Script references variables that were never set, "
-                    "which may cause runtime errors",
+        "which may cause runtime errors",
         recommendation="Define the variable using SET before referencing it, "
-                      "or add existence checks"
+        "or add existence checks",
     ),
     "E007": Rule(
         code="E007",
         name="Empty variable check syntax error",
         severity=RuleSeverity.ERROR,
         explanation="Incorrect syntax for checking if variables are empty "
-                    "will cause comparison errors",
-        recommendation="Use proper syntax: IF \"%%VAR%%\"==\"\" for "
-                      "empty variable checks"
+        "will cause comparison errors",
+        recommendation='Use proper syntax: IF "%%VAR%%"=="" for ' "empty variable checks",
     ),
     "E008": Rule(
         code="E008",
         name="Unreachable code after EXIT or GOTO",
         severity=RuleSeverity.ERROR,
         explanation="Code after EXIT or GOTO statements will never execute",
-        recommendation="Remove unreachable code or restructure script logic"
+        recommendation="Remove unreachable code or restructure script logic",
     ),
     "E009": Rule(
         code="E009",
         name="Mismatched quotes",
         severity=RuleSeverity.ERROR,
         explanation="Lines with unmatched quotes will cause syntax errors or unexpected behavior",
-        recommendation="Ensure all quotes are properly paired and closed"
+        recommendation="Ensure all quotes are properly paired and closed",
     ),
     "E010": Rule(
         code="E010",
         name="Malformed FOR loop missing DO",
         severity=RuleSeverity.ERROR,
         explanation="FOR loops must contain the DO keyword for proper execution",
-        recommendation="Add DO keyword: FOR %%i IN (items) DO command"
+        recommendation="Add DO keyword: FOR %%i IN (items) DO command",
     ),
-
     # Warning Level Rules (W001-W999)
     "W001": Rule(
         code="W001",
         name="Missing exit code",
         severity=RuleSeverity.WARNING,
         explanation="Script doesn't set appropriate exit codes to indicate success or failure",
-        recommendation="Add EXIT /b 0 for success or EXIT /b 1 for errors at script end"
+        recommendation="Add EXIT /b 0 for success or EXIT /b 1 for errors at script end",
     ),
     "W002": Rule(
         code="W002",
         name="Missing ERRORLEVEL check",
         severity=RuleSeverity.WARNING,
         explanation="Critical operations should check %%ERRORLEVEL%% to handle failures properly",
-        recommendation="Add IF ERRORLEVEL 1 checks after operations that might fail"
+        recommendation="Add IF ERRORLEVEL 1 checks after operations that might fail",
     ),
     "W003": Rule(
         code="W003",
         name="Operation without error handling",
         severity=RuleSeverity.WARNING,
         explanation="Operations that commonly fail lack proper error checking",
-        recommendation="Add error checking and appropriate responses for failed operations"
+        recommendation="Add error checking and appropriate responses for failed operations",
     ),
     "W004": Rule(
         code="W004",
         name="Potential infinite loop",
         severity=RuleSeverity.WARNING,
         explanation="Loop construct may run infinitely without proper exit conditions",
-        recommendation="Add counter variables or proper exit conditions to prevent infinite loops"
+        recommendation="Add counter variables or proper exit conditions to prevent infinite loops",
     ),
     "W005": Rule(
         code="W005",
         name="Unquoted variable with spaces",
         severity=RuleSeverity.WARNING,
         explanation="Variables that may contain spaces should be quoted to prevent parsing errors",
-        recommendation="Use quotes around variables: IF \"%%VARIABLE%%\"==\"value\""
+        recommendation='Use quotes around variables: IF "%%VARIABLE%%"=="value"',
     ),
     "W006": Rule(
         code="W006",
         name="Network operation without timeout",
         severity=RuleSeverity.WARNING,
         explanation="Network operations may hang indefinitely without proper timeout settings",
-        recommendation="Add timeout parameters to network commands like PING -n 4"
+        recommendation="Add timeout parameters to network commands like PING -n 4",
     ),
     "W007": Rule(
         code="W007",
         name="File operation on potentially locked file",
         severity=RuleSeverity.WARNING,
         explanation="Operations on files that may be in use by other programs can fail",
-        recommendation="Check if applications are using the file before attempting operations"
+        recommendation="Check if applications are using the file before attempting operations",
     ),
     "W008": Rule(
         code="W008",
         name="Permanent PATH modification",
         severity=RuleSeverity.WARNING,
         explanation="SETX modifies PATH permanently, which may not be desired",
-        recommendation="Use SET for temporary changes or confirm permanent changes are intended"
+        recommendation="Use SET for temporary changes or confirm permanent changes are intended",
     ),
     "W009": Rule(
         code="W009",
         name="Windows version compatibility",
         severity=RuleSeverity.WARNING,
         explanation="Command may not be available in older Windows versions",
-        recommendation="Use version checks or provide alternative commands for older Windows"
+        recommendation="Use version checks or provide alternative commands for older Windows",
     ),
     "W010": Rule(
         code="W010",
         name="Architecture-specific operation",
         severity=RuleSeverity.WARNING,
         explanation="Operation is specific to 32-bit or 64-bit architecture",
-        recommendation="Add architecture detection and appropriate handling for both architectures"
+        recommendation="Add architecture detection and appropriate handling for both architectures",
     ),
     "W011": Rule(
         code="W011",
         name="Unicode handling issue",
         severity=RuleSeverity.WARNING,
         explanation="File operation may not handle Unicode characters properly",
-        recommendation="Consider using commands with better Unicode support"
+        recommendation="Consider using commands with better Unicode support",
     ),
     "W012": Rule(
         code="W012",
         name="Non-ASCII characters detected",
         severity=RuleSeverity.WARNING,
         explanation="Non-ASCII characters may cause issues in some environments",
-        recommendation="Use ASCII-only characters or ensure proper encoding handling"
+        recommendation="Use ASCII-only characters or ensure proper encoding handling",
     ),
     "W013": Rule(
         code="W013",
         name="Duplicate label",
         severity=RuleSeverity.WARNING,
         explanation="Multiple labels with the same name can cause unpredictable GOTO behavior",
-        recommendation="Rename duplicate labels to have unique names"
+        recommendation="Rename duplicate labels to have unique names",
     ),
-
     # Style Level Rules (S001-S999)
     "S001": Rule(
         code="S001",
         name="Missing @ECHO OFF at file start",
         severity=RuleSeverity.STYLE,
         explanation="Batch scripts usually start with @ECHO OFF to prevent "
-                    "command echoing during execution",
-        recommendation="Add '@ECHO OFF' as the first line of your script"
+        "command echoing during execution",
+        recommendation="Add '@ECHO OFF' as the first line of your script",
     ),
     "S002": Rule(
         code="S002",
         name="ECHO OFF without @ prefix",
         severity=RuleSeverity.STYLE,
         explanation="ECHO OFF should use @ prefix to prevent the command "
-                    "itself from being displayed",
-        recommendation="Use '@ECHO OFF' instead of 'ECHO OFF'"
+        "itself from being displayed",
+        recommendation="Use '@ECHO OFF' instead of 'ECHO OFF'",
     ),
     "S003": Rule(
         code="S003",
         name="Inconsistent command capitalization",
         severity=RuleSeverity.STYLE,
         explanation="Batch commands should follow consistent casing conventions for readability",
-        recommendation="Use consistent UPPERCASE for all batch commands"
+        recommendation="Use consistent UPPERCASE for all batch commands",
     ),
     "S004": Rule(
         code="S004",
         name="Trailing whitespace",
         severity=RuleSeverity.STYLE,
         explanation="Trailing spaces at line end can cause subtle errors and should be removed",
-        recommendation="Remove trailing spaces and tabs from line endings"
+        recommendation="Remove trailing spaces and tabs from line endings",
     ),
     "S005": Rule(
         code="S005",
         name="Mixed line endings",
         severity=RuleSeverity.STYLE,
         explanation="Inconsistent line endings (CRLF vs LF) within the same file",
-        recommendation="Use consistent CRLF line endings for Windows batch files"
+        recommendation="Use consistent CRLF line endings for Windows batch files",
     ),
     "S006": Rule(
         code="S006",
         name="Inconsistent variable naming",
         severity=RuleSeverity.STYLE,
         explanation="Variable names should follow consistent naming conventions",
-        recommendation="Use consistent naming: either ALL_CAPS or camelCase throughout"
+        recommendation="Use consistent naming: either ALL_CAPS or camelCase throughout",
     ),
     "S007": Rule(
         code="S007",
         name="BAT extension used instead of CMD for newer Windows",
         severity=RuleSeverity.STYLE,
         explanation="The .cmd file extension is recommended over .bat for Windows NT "
-                    "and newer versions (Windows 2000+). CMD files support additional "
-                    "features and have better error handling in newer Windows environments",
+        "and newer versions (Windows 2000+). CMD files support additional "
+        "features and have better error handling in newer Windows environments",
         recommendation="Consider renaming .bat files to .cmd for scripts intended for "
-                      "Windows 2000 and newer versions. CMD files provide better "
-                      "compatibility with modern Windows features and improved error reporting"
+        "Windows 2000 and newer versions. CMD files provide better "
+        "compatibility with modern Windows features and improved error reporting",
     ),
     "S008": Rule(
         code="S008",
         name="Missing comments for complex code",
         severity=RuleSeverity.STYLE,
         explanation="Complex sections should have comments explaining their purpose",
-        recommendation="Add REM comments to explain complex logic and operations"
+        recommendation="Add REM comments to explain complex logic and operations",
     ),
     "S009": Rule(
         code="S009",
         name="Magic numbers used",
         severity=RuleSeverity.STYLE,
         explanation="Hardcoded numeric values should be defined as named variables",
-        recommendation="Define constants using SET before using numeric values"
+        recommendation="Define constants using SET before using numeric values",
     ),
     "S010": Rule(
         code="S010",
         name="Dead code detected",
         severity=RuleSeverity.STYLE,
         explanation="Unused labels or unreferenced subroutines make code harder to maintain",
-        recommendation="Remove unused labels and unreferenced code sections"
+        recommendation="Remove unused labels and unreferenced code sections",
     ),
     "S011": Rule(
         code="S011",
         name="Line exceeds maximum length",
         severity=RuleSeverity.STYLE,
         explanation="Lines longer than 120 characters are hard to read and maintain",
-        recommendation="Break long lines into multiple shorter lines for better readability"
+        recommendation="Break long lines into multiple shorter lines for better readability",
     ),
-
     # Security Level Rules (SEC001-SEC999)
     "SEC001": Rule(
         code="SEC001",
         name="Potential command injection vulnerability",
         severity=RuleSeverity.SECURITY,
         explanation="User input used in commands without validation could "
-                    "allow malicious code execution",
-        recommendation="Validate and sanitize all user input before using in commands"
+        "allow malicious code execution",
+        recommendation="Validate and sanitize all user input before using in commands",
     ),
     "SEC002": Rule(
         code="SEC002",
         name="Unsafe SET command usage",
         severity=RuleSeverity.SECURITY,
         explanation="SET commands without proper validation or quoting can cause security issues",
-        recommendation="Always quote SET values and validate input: SET \"var=safe value\""
+        recommendation='Always quote SET values and validate input: SET "var=safe value"',
     ),
     "SEC003": Rule(
         code="SEC003",
         name="Dangerous command without confirmation",
         severity=RuleSeverity.SECURITY,
         explanation="Destructive commands should require user confirmation "
-                    "to prevent accidental execution",
-        recommendation="Add confirmation prompts before destructive operations"
+        "to prevent accidental execution",
+        recommendation="Add confirmation prompts before destructive operations",
     ),
     "SEC004": Rule(
         code="SEC004",
         name="Dangerous registry operation",
         severity=RuleSeverity.SECURITY,
         explanation="Registry modifications can damage system functionality "
-                    "and should be carefully reviewed",
+        "and should be carefully reviewed",
         recommendation="Backup registry before modifications and use specific "
-                      "keys rather than broad deletions"
+        "keys rather than broad deletions",
     ),
     "SEC005": Rule(
         code="SEC005",
         name="Missing privilege check",
         severity=RuleSeverity.SECURITY,
         explanation="Operations requiring admin rights should check for proper privileges",
-        recommendation="Use NET SESSION >nul 2>&1 to check for administrator privileges"
+        recommendation="Use NET SESSION >nul 2>&1 to check for administrator privileges",
     ),
     "SEC006": Rule(
         code="SEC006",
         name="Hardcoded absolute path",
         severity=RuleSeverity.SECURITY,
         explanation="Absolute paths may not exist on other systems and could be security risks",
-        recommendation="Use environment variables like %%USERPROFILE%% instead of hardcoded paths"
+        recommendation="Use environment variables like %%USERPROFILE%% instead of hardcoded paths",
     ),
     "SEC007": Rule(
         code="SEC007",
         name="Hardcoded temporary directory",
         severity=RuleSeverity.SECURITY,
         explanation="Hardcoded temp paths may not exist and could create security vulnerabilities",
-        recommendation="Use %%TEMP%% environment variable instead of hardcoded temporary paths"
+        recommendation="Use %%TEMP%% environment variable instead of hardcoded temporary paths",
     ),
-
     # Performance Level Rules (P001-P999)
     "P001": Rule(
         code="P001",
         name="Redundant file existence check",
         severity=RuleSeverity.PERFORMANCE,
         explanation="Unnecessary repeated file existence checks reduce script performance",
-        recommendation="Combine existence checks or store result in variable for reuse"
+        recommendation="Combine existence checks or store result in variable for reuse",
     ),
     "P002": Rule(
         code="P002",
         name="Code duplication detected",
         severity=RuleSeverity.PERFORMANCE,
         explanation="Repeated code blocks should be refactored into "
-                    "subroutines for better maintainability",
-        recommendation="Create subroutines using CALL :function_name for repeated code"
+        "subroutines for better maintainability",
+        recommendation="Create subroutines using CALL :function_name for repeated code",
     ),
     "P003": Rule(
         code="P003",
         name="Unnecessary SETLOCAL",
         severity=RuleSeverity.PERFORMANCE,
         explanation="SETLOCAL is not needed if there are no SET commands in the script",
-        recommendation="Remove SETLOCAL if no local variables are set"
+        recommendation="Remove SETLOCAL if no local variables are set",
     ),
     "P004": Rule(
         code="P004",
         name="Unnecessary ENABLEDELAYEDEXPANSION",
         severity=RuleSeverity.PERFORMANCE,
         explanation="ENABLEDELAYEDEXPANSION is not needed if no !VARIABLES! are used",
-        recommendation="Remove ENABLEDELAYEDEXPANSION if delayed expansion is not used"
+        recommendation="Remove ENABLEDELAYEDEXPANSION if delayed expansion is not used",
     ),
     "P005": Rule(
         code="P005",
         name="ENDLOCAL without SETLOCAL",
         severity=RuleSeverity.PERFORMANCE,
         explanation="ENDLOCAL is not needed without a corresponding SETLOCAL",
-        recommendation="Remove unnecessary ENDLOCAL commands"
+        recommendation="Remove unnecessary ENDLOCAL commands",
     ),
     "P006": Rule(
         code="P006",
         name="Missing ENDLOCAL before exit",
         severity=RuleSeverity.PERFORMANCE,
         explanation="SETLOCAL should be paired with ENDLOCAL before every exit point",
-        recommendation="Add ENDLOCAL before all EXIT statements when SETLOCAL is used"
+        recommendation="Add ENDLOCAL before all EXIT statements when SETLOCAL is used",
     ),
     "P007": Rule(
         code="P007",
         name="Temporary file without random name",
         severity=RuleSeverity.PERFORMANCE,
         explanation="Temporary files should use %%RANDOM%% to prevent file collisions",
-        recommendation="Use %%RANDOM%% in temporary filenames: temp_%%RANDOM%%.txt"
+        recommendation="Use %%RANDOM%% in temporary filenames: temp_%%RANDOM%%.txt",
     ),
     "P008": Rule(
         code="P008",
         name="Delayed expansion without enablement",
         severity=RuleSeverity.PERFORMANCE,
         explanation="Using !VARIABLES! requires SETLOCAL "
-                    "ENABLEDELAYEDEXPANSION for proper functionality",
-        recommendation="Add SETLOCAL ENABLEDELAYEDEXPANSION before using !variable! syntax"
+        "ENABLEDELAYEDEXPANSION for proper functionality",
+        recommendation="Add SETLOCAL ENABLEDELAYEDEXPANSION before using !variable! syntax",
     ),
 }
 
@@ -470,12 +469,12 @@ RULES: Dict[str, Rule] = {
 def read_file_with_encoding(file_path: str) -> Tuple[List[str], str]:
     """
     Reads a file with robust encoding detection and fallback mechanisms.
-    
+
     This function implements a comprehensive encoding detection strategy:
     1. Attempts to use chardet for automatic detection (if available)
     2. Falls back to a prioritized list of common encodings
     3. Provides detailed error messages for troubleshooting
-    
+
     Thread-safe: Yes - uses only local variables and immutable data
     Performance: Optimized for common cases (UTF-8 first)
 
@@ -492,7 +491,7 @@ def read_file_with_encoding(file_path: str) -> Tuple[List[str], str]:
         FileNotFoundError: If the specified file doesn't exist
         PermissionError: If insufficient permissions to read the file
         OSError: If file operation fails due to system issues
-        
+
     Example:
         >>> lines, encoding = read_file_with_encoding("script.bat")
         >>> print(f"Read {len(lines)} lines using {encoding} encoding")
@@ -520,8 +519,11 @@ def read_file_with_encoding(file_path: str) -> Tuple[List[str], str]:
         detected = chardet.detect(raw_data)
         if detected and detected["encoding"] and detected["confidence"] > 0.7:
             detected_encoding = detected["encoding"].lower()
-            logger.debug("Chardet detected encoding: %s (confidence: %.2f)",
-                        detected_encoding, detected['confidence'])
+            logger.debug(
+                "Chardet detected encoding: %s (confidence: %.2f)",
+                detected_encoding,
+                detected["confidence"],
+            )
             # Add detected encoding to the front of our list if it's not already there
             if detected_encoding not in [enc.lower() for enc in encodings_to_try]:
                 encodings_to_try.insert(0, detected_encoding)
@@ -578,24 +580,58 @@ DANGEROUS_COMMANDS = [
 # Pattern definitions for rule matching
 DANGEROUS_COMMAND_PATTERNS: List[Tuple[str, str]] = [
     (r"del\s+\*/\*|\*\.?\*", "SEC003"),  # del *.* type commands
-    (r"format\s+[a-z]:", "SEC003"),     # format c: type commands
-    (r"shutdown", "SEC003"),             # shutdown commands
-    (r"rmdir\s+/s\s+/q\s+", "SEC003"), # rmdir /s /q commands
-    (r"reg\s+delete\s+.*\s+/f", "SEC004"), # forced registry deletions
+    (r"format\s+[a-z]:", "SEC003"),  # format c: type commands
+    (r"shutdown", "SEC003"),  # shutdown commands
+    (r"rmdir\s+/s\s+/q\s+", "SEC003"),  # rmdir /s /q commands
+    (r"reg\s+delete\s+.*\s+/f", "SEC004"),  # forced registry deletions
 ]
 
 COMMAND_CASING_KEYWORDS = {
-    'echo', 'set', 'if', 'for', 'goto', 'call', 'exit', 'rem', 'pause',
-    'copy', 'move', 'del', 'dir', 'type', 'find', 'findstr', 'sort',
-    'more', 'cls', 'cd', 'pushd', 'popd', 'mkdir', 'rmdir', 'attrib',
-    'xcopy', 'robocopy', 'ping', 'ipconfig', 'netstat', 'tasklist',
-    'taskkill', 'sc', 'net', 'reg', 'wmic', 'powershell', 'timeout',
-    'choice', 'setlocal', 'endlocal', 'enabledelayedexpansion'
+    "echo",
+    "set",
+    "if",
+    "for",
+    "goto",
+    "call",
+    "exit",
+    "rem",
+    "pause",
+    "copy",
+    "move",
+    "del",
+    "dir",
+    "type",
+    "find",
+    "findstr",
+    "sort",
+    "more",
+    "cls",
+    "cd",
+    "pushd",
+    "popd",
+    "mkdir",
+    "rmdir",
+    "attrib",
+    "xcopy",
+    "robocopy",
+    "ping",
+    "ipconfig",
+    "netstat",
+    "tasklist",
+    "taskkill",
+    "sc",
+    "net",
+    "reg",
+    "wmic",
+    "powershell",
+    "timeout",
+    "choice",
+    "setlocal",
+    "endlocal",
+    "enabledelayedexpansion",
 }
 
-OLDER_WINDOWS_COMMANDS = {
-    'choice', 'forfiles', 'where', 'robocopy', 'timeout', 'icacls'
-}
+OLDER_WINDOWS_COMMANDS = {"choice", "forfiles", "where", "robocopy", "timeout", "icacls"}
 
 ARCHITECTURE_SPECIFIC_PATTERNS = [
     r"Wow6432Node",  # 32-bit registry redirect
@@ -603,9 +639,7 @@ ARCHITECTURE_SPECIFIC_PATTERNS = [
     r"SysWow64",  # 32-bit system directory
 ]
 
-UNICODE_PROBLEMATIC_COMMANDS = {
-    'type', 'echo', 'find', 'findstr'
-}
+UNICODE_PROBLEMATIC_COMMANDS = {"type", "echo", "find", "findstr"}
 
 
 def print_help() -> None:
@@ -658,11 +692,13 @@ def _collect_labels(lines: List[str]) -> Tuple[Dict[str, int], List[LintIssue]]:
         if line.strip().startswith(":"):
             label = line.strip().lower()
             if label in labels:
-                issues.append(LintIssue(
-                    line_number=i,
-                    rule=RULES["W013"],  # Duplicate label
-                    context=f"Label '{label}' already defined on line {labels[label]}"
-                ))
+                issues.append(
+                    LintIssue(
+                        line_number=i,
+                        rule=RULES["W013"],  # Duplicate label
+                        context=f"Label '{label}' already defined on line {labels[label]}",
+                    )
+                )
             else:
                 labels[label] = i
 
@@ -689,13 +725,36 @@ def _collect_set_variables(lines: List[str]) -> Set[str]:
 
     # Add common environment variables that are typically available
     common_env_vars = {
-        'PATH', 'TEMP', 'TMP', 'USERPROFILE', 'USERNAME', 'COMPUTERNAME',
-        'PROCESSOR_ARCHITECTURE', 'PROCESSOR_IDENTIFIER', 'ERRORLEVEL',
-        'CD', 'DATE', 'TIME', 'RANDOM', 'CMDEXTVERSION', 'COMSPEC',
-        'HOMEDRIVE', 'HOMEPATH', 'LOGONSERVER', 'NUMBER_OF_PROCESSORS',
-        'OS', 'PATHEXT', 'PROGRAMFILES', 'SYSTEMDRIVE', 'SYSTEMROOT',
-        'WINDIR', 'ALLUSERSPROFILE', 'APPDATA', 'LOCALAPPDATA',
-        'PROGRAMDATA', 'PUBLIC'
+        "PATH",
+        "TEMP",
+        "TMP",
+        "USERPROFILE",
+        "USERNAME",
+        "COMPUTERNAME",
+        "PROCESSOR_ARCHITECTURE",
+        "PROCESSOR_IDENTIFIER",
+        "ERRORLEVEL",
+        "CD",
+        "DATE",
+        "TIME",
+        "RANDOM",
+        "CMDEXTVERSION",
+        "COMSPEC",
+        "HOMEDRIVE",
+        "HOMEPATH",
+        "LOGONSERVER",
+        "NUMBER_OF_PROCESSORS",
+        "OS",
+        "PATHEXT",
+        "PROGRAMFILES",
+        "SYSTEMDRIVE",
+        "SYSTEMROOT",
+        "WINDIR",
+        "ALLUSERSPROFILE",
+        "APPDATA",
+        "LOCALAPPDATA",
+        "PROGRAMDATA",
+        "PUBLIC",
     }
     set_vars.update(common_env_vars)
 
@@ -715,63 +774,77 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
         if not target_label.startswith(":"):
             target_label = ":" + target_label
         if target_label not in labels:
-            issues.append(LintIssue(
-                line_number=line_num,
-                rule=RULES["E002"],
-                context=f"GOTO points to non-existent label '{label_text}'"
-            ))
+            issues.append(
+                LintIssue(
+                    line_number=line_num,
+                    rule=RULES["E002"],
+                    context=f"GOTO points to non-existent label '{label_text}'",
+                )
+            )
 
     # E003: IF statement improper formatting
     if_match = re.match(r"if\s+[^=]+$", stripped, re.IGNORECASE)
-    if (if_match and "exist" not in stripped.lower() and
-            "defined" not in stripped.lower() and "==" not in stripped):
-        issues.append(LintIssue(
-            line_number=line_num,
-            rule=RULES["E003"],
-            context="IF statement appears to be missing comparison operator"
-        ))
+    if (
+        if_match
+        and "exist" not in stripped.lower()
+        and "defined" not in stripped.lower()
+        and "==" not in stripped
+    ):
+        issues.append(
+            LintIssue(
+                line_number=line_num,
+                rule=RULES["E003"],
+                context="IF statement appears to be missing comparison operator",
+            )
+        )
 
     # E004: IF EXIST syntax mixing
     if re.match(r"if\s+exist\s+.*==.*", stripped, re.IGNORECASE):
-        issues.append(LintIssue(
-            line_number=line_num,
-            rule=RULES["E004"],
-            context="Mixing IF EXIST with comparison operators"
-        ))
+        issues.append(
+            LintIssue(
+                line_number=line_num,
+                rule=RULES["E004"],
+                context="Mixing IF EXIST with comparison operators",
+            )
+        )
 
     # E005: Invalid path syntax (basic check for invalid characters)
     path_patterns = [r'"([^"]*[<>|*?][^"]*)",', r"'([^']*[<>|*?][^']*)'"]
     for pattern in path_patterns:
         if re.search(pattern, stripped):
-            issues.append(LintIssue(
-                line_number=line_num,
-                rule=RULES["E005"],
-                context="Path contains invalid characters"
-            ))
+            issues.append(
+                LintIssue(
+                    line_number=line_num,
+                    rule=RULES["E005"],
+                    context="Path contains invalid characters",
+                )
+            )
             break
 
     # E009: Mismatched quotes
     if line.count('"') % 2 != 0:
-        issues.append(LintIssue(
-            line_number=line_num,
-            rule=RULES["E009"],
-            context="Unmatched double quotes detected"
-        ))
+        issues.append(
+            LintIssue(
+                line_number=line_num, rule=RULES["E009"], context="Unmatched double quotes detected"
+            )
+        )
 
     # E010: Malformed FOR loop missing DO
     if re.match(r"for\s+.*", stripped, re.IGNORECASE) and " do " not in stripped.lower():
-        issues.append(LintIssue(
-            line_number=line_num,
-            rule=RULES["E010"],
-            context="FOR loop is missing required DO keyword"
-        ))
+        issues.append(
+            LintIssue(
+                line_number=line_num,
+                rule=RULES["E010"],
+                context="FOR loop is missing required DO keyword",
+            )
+        )
 
     return issues
 
 
 def _check_warning_issues(  # pylint: disable=unused-argument
-        line: str, line_num: int, set_vars: Set[str],
-        delayed_expansion_enabled: bool) -> List[LintIssue]:
+    line: str, line_num: int, set_vars: Set[str], delayed_expansion_enabled: bool
+) -> List[LintIssue]:
     """Check for warning level issues."""
     issues: List[LintIssue] = []
     stripped = line.strip()
@@ -780,72 +853,88 @@ def _check_warning_issues(  # pylint: disable=unused-argument
     unquoted_var_pattern = r'(?<!["\'])%[A-Z0-9_]+%|(?<!["\'])![A-Z0-9_]+!'
     if re.search(unquoted_var_pattern, stripped, re.IGNORECASE):
         # Check if it's in a context where spaces could be problematic
-        if any(cmd in stripped.lower() for cmd in ['if', 'echo', 'set', 'call']):
-            issues.append(LintIssue(
-                line_number=line_num,
-                rule=RULES["W005"],
-                context="Variable may contain spaces and should be quoted"
-            ))
+        if any(cmd in stripped.lower() for cmd in ["if", "echo", "set", "call"]):
+            issues.append(
+                LintIssue(
+                    line_number=line_num,
+                    rule=RULES["W005"],
+                    context="Variable may contain spaces and should be quoted",
+                )
+            )
 
     # W006: Network operation without timeout
     if re.match(r"ping\s+[^-]*$", stripped, re.IGNORECASE):
-        issues.append(LintIssue(
-            line_number=line_num,
-            rule=RULES["W006"],
-            context="PING command without timeout parameter"
-        ))
+        issues.append(
+            LintIssue(
+                line_number=line_num,
+                rule=RULES["W006"],
+                context="PING command without timeout parameter",
+            )
+        )
 
     # W008: Permanent PATH modification
     if re.match(r"setx\s+path", stripped, re.IGNORECASE):
-        issues.append(LintIssue(
-            line_number=line_num,
-            rule=RULES["W008"],
-            context="SETX modifies PATH permanently"
-        ))
+        issues.append(
+            LintIssue(
+                line_number=line_num, rule=RULES["W008"], context="SETX modifies PATH permanently"
+            )
+        )
 
     # W009: Windows version compatibility
     for cmd in OLDER_WINDOWS_COMMANDS:
         if re.match(rf"{cmd}\s", stripped, re.IGNORECASE):
-            issues.append(LintIssue(
-                line_number=line_num,
-                rule=RULES["W009"],
-                context=f"Command '{cmd}' may not be available on older Windows versions"
-            ))
+            issues.append(
+                LintIssue(
+                    line_number=line_num,
+                    rule=RULES["W009"],
+                    context=f"Command '{cmd}' may not be available on older Windows versions",
+                )
+            )
             break
 
     # W010: Architecture-specific operation
     for pattern in ARCHITECTURE_SPECIFIC_PATTERNS:
         if pattern in stripped:
-            issues.append(LintIssue(
-                line_number=line_num,
-                rule=RULES["W010"],
-                context=f"Architecture-specific reference: {pattern}"
-            ))
+            issues.append(
+                LintIssue(
+                    line_number=line_num,
+                    rule=RULES["W010"],
+                    context=f"Architecture-specific reference: {pattern}",
+                )
+            )
             break
 
     # W011: Unicode handling issue
     for cmd in UNICODE_PROBLEMATIC_COMMANDS:
         if re.match(rf"{cmd}\s", stripped, re.IGNORECASE):
-            issues.append(LintIssue(
-                line_number=line_num,
-                rule=RULES["W011"],
-                context=f"Command '{cmd}' may have Unicode handling issues"
-            ))
+            issues.append(
+                LintIssue(
+                    line_number=line_num,
+                    rule=RULES["W011"],
+                    context=f"Command '{cmd}' may have Unicode handling issues",
+                )
+            )
             break
 
     # W012: Non-ASCII characters detected
     if not all(ord(c) < 128 for c in stripped):
-        issues.append(LintIssue(
-            line_number=line_num,
-            rule=RULES["W012"],
-            context="Line contains non-ASCII characters"
-        ))
+        issues.append(
+            LintIssue(
+                line_number=line_num,
+                rule=RULES["W012"],
+                context="Line contains non-ASCII characters",
+            )
+        )
 
     return issues
 
 
-def _check_style_issues(line: str, line_num: int, file_lines: List[str],  # pylint: disable=unused-argument
-                       max_line_length: int = 120) -> List[LintIssue]:
+def _check_style_issues(
+    line: str,
+    line_num: int,
+    file_lines: List[str],  # pylint: disable=unused-argument
+    max_line_length: int = 120,
+) -> List[LintIssue]:
     """Check for style level issues."""
     issues: List[LintIssue] = []
     stripped = line.strip()
@@ -856,20 +945,22 @@ def _check_style_issues(line: str, line_num: int, file_lines: List[str],  # pyli
         if re.search(pattern, stripped, re.IGNORECASE):
             # Check if it's not uppercase
             if not re.search(rf"\b{keyword.upper()}\b", stripped):
-                issues.append(LintIssue(
-                    line_number=line_num,
-                    rule=RULES["S003"],
-                    context=f"Command '{keyword}' should be uppercase for consistency"
-                ))
+                issues.append(
+                    LintIssue(
+                        line_number=line_num,
+                        rule=RULES["S003"],
+                        context=f"Command '{keyword}' should be uppercase for consistency",
+                    )
+                )
             break
 
     # S004: Trailing whitespace
     if line.rstrip("\n") != line.rstrip():
-        issues.append(LintIssue(
-            line_number=line_num,
-            rule=RULES["S004"],
-            context="Line has trailing spaces or tabs"
-        ))
+        issues.append(
+            LintIssue(
+                line_number=line_num, rule=RULES["S004"], context="Line has trailing spaces or tabs"
+            )
+        )
 
     # S009: Magic numbers used (simple heuristic)
     number_patterns = [r"timeout\s+/t\s+(\d+)", r"ping\s+.*\s+-n\s+(\d+)"]
@@ -878,20 +969,24 @@ def _check_style_issues(line: str, line_num: int, file_lines: List[str],  # pyli
         if match:
             number = match.group(1)
             if int(number) > 10:  # Only flag larger numbers
-                issues.append(LintIssue(
-                    line_number=line_num,
-                    rule=RULES["S009"],
-                    context=f"Magic number '{number}' should be defined as a variable"
-                ))
+                issues.append(
+                    LintIssue(
+                        line_number=line_num,
+                        rule=RULES["S009"],
+                        context=f"Magic number '{number}' should be defined as a variable",
+                    )
+                )
 
     # S011: Line exceeds maximum length
     line_length = len(line.rstrip("\n"))
     if line_length > max_line_length:
-        issues.append(LintIssue(
-            line_number=line_num,
-            rule=RULES["S011"],
-            context=f"Line is {line_length} characters (max {max_line_length})"
-        ))
+        issues.append(
+            LintIssue(
+                line_number=line_num,
+                rule=RULES["S011"],
+                context=f"Line is {line_length} characters (max {max_line_length})",
+            )
+        )
 
     return issues
 
@@ -903,11 +998,13 @@ def _check_security_issues(line: str, line_num: int) -> List[LintIssue]:
 
     # SEC001: Potential command injection vulnerability
     if re.search(r"set\s+/p\s+[^=]+=.*%.*%", stripped, re.IGNORECASE):
-        issues.append(LintIssue(
-            line_number=line_num,
-            rule=RULES["SEC001"],
-            context="User input used in command without validation"
-        ))
+        issues.append(
+            LintIssue(
+                line_number=line_num,
+                rule=RULES["SEC001"],
+                context="User input used in command without validation",
+            )
+        )
 
     # SEC002: Unsafe SET command usage
     set_match = re.match(r"set\s+([A-Za-z0-9_]+)=(.+)", stripped, re.IGNORECASE)
@@ -915,20 +1012,24 @@ def _check_security_issues(line: str, line_num: int) -> List[LintIssue]:
         var_val_text: str = set_match.group(2)
         var_val: str = var_val_text.strip()
         if not (var_val.startswith('"') and var_val.endswith('"')):
-            issues.append(LintIssue(
-                line_number=line_num,
-                rule=RULES["SEC002"],
-                context="SET command value should be quoted for safety"
-            ))
+            issues.append(
+                LintIssue(
+                    line_number=line_num,
+                    rule=RULES["SEC002"],
+                    context="SET command value should be quoted for safety",
+                )
+            )
 
     # SEC003: Dangerous command without confirmation
     for pattern, rule_code in DANGEROUS_COMMAND_PATTERNS:
         if re.search(pattern, stripped, re.IGNORECASE):
-            issues.append(LintIssue(
-                line_number=line_num,
-                rule=RULES[rule_code],
-                context="Destructive command should have user confirmation"
-            ))
+            issues.append(
+                LintIssue(
+                    line_number=line_num,
+                    rule=RULES[rule_code],
+                    context="Destructive command should have user confirmation",
+                )
+            )
             break
 
     # SEC004: Dangerous registry operation (covered by patterns above)
@@ -937,88 +1038,109 @@ def _check_security_issues(line: str, line_num: int) -> List[LintIssue]:
     admin_commands = ["reg add hklm", "reg delete hklm", "sc ", "net "]
     for cmd in admin_commands:
         if cmd in stripped.lower():
-            issues.append(LintIssue(
-                line_number=line_num,
-                rule=RULES["SEC005"],
-                context=f"Command '{cmd.strip()}' may require administrator privileges"
-            ))
+            issues.append(
+                LintIssue(
+                    line_number=line_num,
+                    rule=RULES["SEC005"],
+                    context=f"Command '{cmd.strip()}' may require administrator privileges",
+                )
+            )
             break
 
     # SEC006: Hardcoded absolute path
     hardcoded_paths = [r"C:\\", r"D:\\", r"E:\\", r"/Users/", r"/home/"]
     for path_pattern in hardcoded_paths:
         if re.search(path_pattern, stripped):
-            issues.append(LintIssue(
-                line_number=line_num,
-                rule=RULES["SEC006"],
-                context="Hardcoded absolute path may not exist on other systems"
-            ))
+            issues.append(
+                LintIssue(
+                    line_number=line_num,
+                    rule=RULES["SEC006"],
+                    context="Hardcoded absolute path may not exist on other systems",
+                )
+            )
             break
 
     # SEC007: Hardcoded temporary directory
     temp_paths = [r"C:\\temp", r"C:\\tmp", r"/tmp"]
     for temp_path in temp_paths:
         if temp_path in stripped:
-            issues.append(LintIssue(
-                line_number=line_num,
-                rule=RULES["SEC007"],
-                context="Use %TEMP% instead of hardcoded temporary paths"
-            ))
+            issues.append(
+                LintIssue(
+                    line_number=line_num,
+                    rule=RULES["SEC007"],
+                    context="Use %TEMP% instead of hardcoded temporary paths",
+                )
+            )
             break
 
     return issues
 
 
 def _check_performance_issues(  # pylint: disable=too-many-arguments,too-many-positional-arguments
-        lines: List[str], line_num: int, line: str,  # pylint: disable=unused-argument
-        has_setlocal: bool, has_set_commands: bool,
-        has_delayed_expansion: bool, uses_delayed_vars: bool) -> List[LintIssue]:
+    _lines: List[str],
+    line_num: int,
+    line: str,  # pylint: disable=unused-argument
+    has_setlocal: bool,
+    has_set_commands: bool,
+    has_delayed_expansion: bool,
+    uses_delayed_vars: bool,
+) -> List[LintIssue]:
     """Check for performance level issues."""
     issues: List[LintIssue] = []
     stripped = line.strip()
 
     # P003: Unnecessary SETLOCAL
     if "setlocal" in stripped.lower() and not has_set_commands:
-        issues.append(LintIssue(
-            line_number=line_num,
-            rule=RULES["P003"],
-            context="SETLOCAL used without any SET commands"
-        ))
+        issues.append(
+            LintIssue(
+                line_number=line_num,
+                rule=RULES["P003"],
+                context="SETLOCAL used without any SET commands",
+            )
+        )
 
     # P004: Unnecessary ENABLEDELAYEDEXPANSION
     if "enabledelayedexpansion" in stripped.lower() and not uses_delayed_vars:
-        issues.append(LintIssue(
-            line_number=line_num,
-            rule=RULES["P004"],
-            context="ENABLEDELAYEDEXPANSION used without !variables!"
-        ))
+        issues.append(
+            LintIssue(
+                line_number=line_num,
+                rule=RULES["P004"],
+                context="ENABLEDELAYEDEXPANSION used without !variables!",
+            )
+        )
 
     # P005: ENDLOCAL without SETLOCAL
     if "endlocal" in stripped.lower() and not has_setlocal:
-        issues.append(LintIssue(
-            line_number=line_num,
-            rule=RULES["P005"],
-            context="ENDLOCAL used without corresponding SETLOCAL"
-        ))
+        issues.append(
+            LintIssue(
+                line_number=line_num,
+                rule=RULES["P005"],
+                context="ENDLOCAL used without corresponding SETLOCAL",
+            )
+        )
 
     # P007: Temporary file without random name
     temp_patterns = [r"temp\.txt", r"tmp\.txt", r"temp\.log"]
     for pattern in temp_patterns:
         if re.search(pattern, stripped, re.IGNORECASE) and "random" not in stripped.lower():
-            issues.append(LintIssue(
-                line_number=line_num,
-                rule=RULES["P007"],
-                context="Temporary file should use %RANDOM% to prevent collisions"
-            ))
+            issues.append(
+                LintIssue(
+                    line_number=line_num,
+                    rule=RULES["P007"],
+                    context="Temporary file should use %RANDOM% to prevent collisions",
+                )
+            )
             break
 
     # P008: Delayed expansion without enablement (moved from old delayed expansion check)
     if not has_delayed_expansion and re.search(r"![A-Z0-9_]+!", stripped, re.IGNORECASE):
-        issues.append(LintIssue(
-            line_number=line_num,
-            rule=RULES["P008"],
-            context="Delayed expansion variables used without ENABLEDELAYEDEXPANSION"
-        ))
+        issues.append(
+            LintIssue(
+                line_number=line_num,
+                rule=RULES["P008"],
+                context="Delayed expansion variables used without ENABLEDELAYEDEXPANSION",
+            )
+        )
 
     return issues
 
@@ -1034,57 +1156,25 @@ def _check_undefined_variables(lines: List[str], set_vars: Set[str]) -> List[Lin
             var_match_2: Optional[str] = match.group(2)
             var_name: str = (var_match_1 or var_match_2 or "").upper()
             if var_name not in set_vars:
-                issues.append(LintIssue(
-                    line_number=i,
-                    rule=RULES["E006"],  # Undefined variable reference
-                    context=f"Variable '{var_name}' is used but never defined"
-                ))
+                issues.append(
+                    LintIssue(
+                        line_number=i,
+                        rule=RULES["E006"],  # Undefined variable reference
+                        context=f"Variable '{var_name}' is used but never defined",
+                    )
+                )
 
     return issues
 
 
-def lint_batch_file(file_path: str, max_line_length: int = 120,  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
-                    enable_performance_rules: bool = True,
-                    enable_style_rules: bool = True) -> List[LintIssue]:
-    """
-    Lint a batch file and return list of issues found.
-    
-    This is the main entry point for batch file analysis. It performs comprehensive
-    static analysis including syntax validation, security checks, style analysis,
-    and performance optimization suggestions.
-    
-    Thread-safe: Yes - uses only local variables and immutable global rules
-    Performance: Optimized for files up to 10MB, handles larger files gracefully
-
-    Args:
-        file_path: Path to the batch file (.bat or .cmd) to lint.
-                  Can be absolute or relative path.
-        max_line_length: Maximum allowed line length for S011 rule (default: 120)
-        enable_performance_rules: Whether to enable performance-related rules (default: True)
-        enable_style_rules: Whether to enable style-related rules (default: True)
+def _validate_and_read_file(file_path: str) -> Tuple[List[str], str]:
+    """Validate file and read its contents.
 
     Returns:
-        List of LintIssue objects containing detailed issue information.
-        Each issue includes line number, rule details, and contextual information.
-
-    Raises:
-        OSError: If file cannot be read or encoding issues occur
-        FileNotFoundError: If the specified file doesn't exist
-        PermissionError: If insufficient permissions to read the file
-        ValueError: If file_path is empty or invalid
-        
-    Example:
-        >>> issues = lint_batch_file("script.bat")
-        >>> for issue in issues:
-        ...     print(f"Line {issue.line_number}: {issue.rule.name}")
-        
-        >>> # With custom configuration
-        >>> issues = lint_batch_file("script.bat", max_line_length=100, 
-        ...                         enable_style_rules=False)
+        Tuple of (lines, encoding_used)
     """
     if not file_path or not isinstance(file_path, str):
         raise ValueError("file_path must be a non-empty string")
-    logger.info("Starting lint analysis of file: %s", file_path)
 
     # Validate file exists and is accessible
     file_obj = Path(file_path)
@@ -1096,18 +1186,10 @@ def lint_batch_file(file_path: str, max_line_length: int = 120,  # pylint: disab
     # Check file size for performance warning
     file_size = file_obj.stat().st_size
     if file_size > 10 * 1024 * 1024:  # 10MB
-        logger.warning("Large file detected (%dMB). Processing may take longer.",
-                      file_size // 1024 // 1024)
-    # Store original max_line_length for S011 rule
-    original_s011_rule = RULES["S011"]
-    if max_line_length != 120:
-        RULES["S011"] = Rule(
-            code="S011",
-            name=original_s011_rule.name,
-            severity=original_s011_rule.severity,
-            explanation=original_s011_rule.explanation.replace("120", str(max_line_length)),
-            recommendation=original_s011_rule.recommendation
+        logger.warning(
+            "Large file detected (%dMB). Processing may take longer.", file_size // 1024 // 1024
         )
+
     lines, encoding_used = read_file_with_encoding(file_path)
 
     # Issue a warning if we had to fall back from UTF-8
@@ -1116,56 +1198,78 @@ def lint_batch_file(file_path: str, max_line_length: int = 120,  # pylint: disab
             f"File '{file_path}' was read using '{encoding_used}' encoding instead of UTF-8. "
             f"Consider converting the file to UTF-8 for better compatibility.",
             UserWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
 
-    issues: List[LintIssue] = []
+    return lines, encoding_used
 
-    if not lines:
-        return issues  # Empty file, no issues
 
-    # Analyze script structure for context-aware checking
+def _analyze_script_structure(lines: List[str]) -> Tuple[bool, bool, bool, bool]:
+    """Analyze script structure for context-aware checking.
+
+    Returns:
+        Tuple of (has_setlocal, has_set_commands, has_delayed_expansion, uses_delayed_vars)
+    """
     has_setlocal = any("setlocal" in line.lower() for line in lines)
     has_set_commands = any(re.match(r"\s*set\s+[^=]+=.*", line, re.IGNORECASE) for line in lines)
     has_delayed_expansion = any(
         re.search(r"setlocal\s+enabledelayedexpansion", line, re.IGNORECASE) for line in lines
     )
     uses_delayed_vars = any(re.search(r"![A-Z0-9_]+!", line, re.IGNORECASE) for line in lines)
+    return has_setlocal, has_set_commands, has_delayed_expansion, uses_delayed_vars
 
-    # Style rules that apply globally (only if style rules are enabled)
-    if enable_style_rules:
-        # S001: Missing @ECHO OFF at file start
-        if not lines[0].strip().lower().startswith("@echo off"):
-            issues.append(LintIssue(
-                line_number=1,
-                rule=RULES["S001"],
-                context="Script should start with @ECHO OFF"
-            ))
 
-        # S002: ECHO OFF without @ prefix
-        first_line = lines[0].strip().lower()
-        if first_line.startswith("echo off") and not first_line.startswith("@echo off"):
-            issues.append(LintIssue(
-                line_number=1,
-                rule=RULES["S002"],
-                context="Use @ECHO OFF instead of ECHO OFF"
-            ))
+def _check_global_style_rules(lines: List[str], file_path: str) -> List[LintIssue]:
+    """Check global style rules that apply to the entire file."""
+    issues: List[LintIssue] = []
 
-        # S007: File extension recommendation
-        if file_path.lower().endswith(".bat"):
-            issues.append(LintIssue(
+    if not lines:
+        return issues
+    # S001: Missing @ECHO OFF at file start
+    if not lines[0].strip().lower().startswith("@echo off"):
+        issues.append(
+            LintIssue(
+                line_number=1, rule=RULES["S001"], context="Script should start with @ECHO OFF"
+            )
+        )
+
+    # S002: ECHO OFF without @ prefix
+    first_line = lines[0].strip().lower()
+    if first_line.startswith("echo off") and not first_line.startswith("@echo off"):
+        issues.append(
+            LintIssue(
+                line_number=1, rule=RULES["S002"], context="Use @ECHO OFF instead of ECHO OFF"
+            )
+        )
+
+    # S007: File extension recommendation
+    if file_path.lower().endswith(".bat"):
+        issues.append(
+            LintIssue(
                 line_number=1,
                 rule=RULES["S007"],
                 context="Consider using .cmd extension instead of .bat for scripts "
-                        "targeting Windows 2000 and newer"
-            ))
+                "targeting Windows 2000 and newer",
+            )
+        )
 
-    # Collect labels and check for duplicates
-    labels, label_issues = _collect_labels(lines)
-    issues.extend(label_issues)
+    return issues
 
-    # Collect set variables for undefined variable checking
-    set_vars = _collect_set_variables(lines)
+
+def _process_file_checks(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    lines: List[str],
+    labels: Dict[str, int],
+    set_vars: Set[str],
+    has_setlocal: bool,
+    has_set_commands: bool,
+    has_delayed_expansion: bool,
+    uses_delayed_vars: bool,
+    max_line_length: int,
+    enable_performance_rules: bool,
+    enable_style_rules: bool,
+) -> List[LintIssue]:
+    """Process all line-by-line and global checks."""
+    issues: List[LintIssue] = []
 
     # Check each line with all rule categories
     for i, line in enumerate(lines, start=1):
@@ -1185,35 +1289,134 @@ def lint_batch_file(file_path: str, max_line_length: int = 120,  # pylint: disab
 
         # Performance level checks (if enabled)
         if enable_performance_rules:
-            perf_issues = _check_performance_issues(lines, i, line, has_setlocal,
-                                                  has_set_commands, has_delayed_expansion,
-                                                  uses_delayed_vars)
+            perf_issues = _check_performance_issues(
+                lines,
+                i,
+                line,
+                has_setlocal,
+                has_set_commands,
+                has_delayed_expansion,
+                uses_delayed_vars,
+            )
             issues.extend(perf_issues)
 
     # Global checks (across all lines)
     issues.extend(_check_undefined_variables(lines, set_vars))
-
-    # Check for unreachable code (E008)
     issues.extend(_check_unreachable_code(lines))
-
-    # Check for redundant operations (P001)
     issues.extend(_check_redundant_operations(lines))
-
-    # Check for code duplication (P002)
     issues.extend(_check_code_duplication(lines))
+
+    return issues
+
+
+def lint_batch_file(  # pylint: disable=too-many-locals
+    file_path: str,
+    max_line_length: int = 120,
+    enable_performance_rules: bool = True,
+    enable_style_rules: bool = True,
+) -> List[LintIssue]:
+    """
+    Lint a batch file and return list of issues found.
+
+    This is the main entry point for batch file analysis. It performs comprehensive
+    static analysis including syntax validation, security checks, style analysis,
+    and performance optimization suggestions.
+
+    Thread-safe: Yes - uses only local variables and immutable global rules
+    Performance: Optimized for files up to 10MB, handles larger files gracefully
+
+    Args:
+        file_path: Path to the batch file (.bat or .cmd) to lint.
+                  Can be absolute or relative path.
+        max_line_length: Maximum allowed line length for S011 rule (default: 120)
+        enable_performance_rules: Whether to enable performance-related rules (default: True)
+        enable_style_rules: Whether to enable style-related rules (default: True)
+
+    Returns:
+        List of LintIssue objects containing detailed issue information.
+        Each issue includes line number, rule details, and contextual information.
+
+    Raises:
+        OSError: If file cannot be read or encoding issues occur
+        FileNotFoundError: If the specified file doesn't exist
+        PermissionError: If insufficient permissions to read the file
+        ValueError: If file_path is empty or invalid
+
+    Example:
+        >>> issues = lint_batch_file("script.bat")
+        >>> for issue in issues:
+        ...     print(f"Line {issue.line_number}: {issue.rule.name}")
+
+        >>> # With custom configuration
+        >>> issues = lint_batch_file("script.bat", max_line_length=100,
+        ...                         enable_style_rules=False)
+    """
+    logger.info("Starting lint analysis of file: %s", file_path)
+
+    # Read and validate file
+    lines, _encoding_used = _validate_and_read_file(file_path)
+
+    if not lines:
+        return []  # Empty file, no issues
+
+    # Store original max_line_length for S011 rule
+    original_s011_rule = RULES["S011"]
+    if max_line_length != 120:
+        RULES["S011"] = Rule(
+            code="S011",
+            name=original_s011_rule.name,
+            severity=original_s011_rule.severity,
+            explanation=original_s011_rule.explanation.replace("120", str(max_line_length)),
+            recommendation=original_s011_rule.recommendation,
+        )
+
+    issues: List[LintIssue] = []
+
+    # Analyze script structure for context-aware checking
+    structure_data = _analyze_script_structure(lines)
+    has_setlocal, has_set_commands, has_delayed_expansion, uses_delayed_vars = structure_data
+
+    # Style rules that apply globally (only if style rules are enabled)
+    if enable_style_rules:
+        issues.extend(_check_global_style_rules(lines, file_path))
+
+    # Collect labels and check for duplicates
+    labels, label_issues = _collect_labels(lines)
+    issues.extend(label_issues)
+
+    # Collect set variables for undefined variable checking
+    set_vars = _collect_set_variables(lines)
+
+    # Process all line-by-line and global checks
+    issues.extend(
+        _process_file_checks(
+            lines,
+            labels,
+            set_vars,
+            has_setlocal,
+            has_set_commands,
+            has_delayed_expansion,
+            uses_delayed_vars,
+            max_line_length,
+            enable_performance_rules,
+            enable_style_rules,
+        )
+    )
 
     # Restore original S011 rule if modified
     if max_line_length != 120:
         RULES["S011"] = original_s011_rule
-    logger.info("Lint analysis completed. Found %d issues across %d error(s), "
-               "%d warning(s), %d style issue(s), %d security issue(s), "
-               "%d performance issue(s)",
-               len(issues),
-               len([i for i in issues if i.rule.severity == RuleSeverity.ERROR]),
-               len([i for i in issues if i.rule.severity == RuleSeverity.WARNING]),
-               len([i for i in issues if i.rule.severity == RuleSeverity.STYLE]),
-               len([i for i in issues if i.rule.severity == RuleSeverity.SECURITY]),
-               len([i for i in issues if i.rule.severity == RuleSeverity.PERFORMANCE]))
+    logger.info(
+        "Lint analysis completed. Found %d issues across %d error(s), "
+        "%d warning(s), %d style issue(s), %d security issue(s), "
+        "%d performance issue(s)",
+        len(issues),
+        len([i for i in issues if i.rule.severity == RuleSeverity.ERROR]),
+        len([i for i in issues if i.rule.severity == RuleSeverity.WARNING]),
+        len([i for i in issues if i.rule.severity == RuleSeverity.STYLE]),
+        len([i for i in issues if i.rule.severity == RuleSeverity.SECURITY]),
+        len([i for i in issues if i.rule.severity == RuleSeverity.PERFORMANCE]),
+    )
 
     return issues
 
@@ -1229,12 +1432,14 @@ def _check_unreachable_code(lines: List[str]) -> List[LintIssue]:
             for j in range(i + 1, len(lines)):
                 next_line = lines[j].strip()
                 if next_line and not next_line.startswith(":") and not next_line.startswith("rem"):
-                    issues.append(LintIssue(
-                        line_number=j + 1,
-                        rule=RULES["E008"],
-                        context=f"Code after {stripped.split()[0].upper()} on "
-                                f"line {i + 1} will never execute"
-                    ))
+                    issues.append(
+                        LintIssue(
+                            line_number=j + 1,
+                            rule=RULES["E008"],
+                            context=f"Code after {stripped.split()[0].upper()} on "
+                            f"line {i + 1} will never execute",
+                        )
+                    )
                     break
 
     return issues
@@ -1254,12 +1459,14 @@ def _check_redundant_operations(lines: List[str]) -> List[LintIssue]:
             for j in range(i + 1, min(i + 5, len(lines))):
                 next_stripped = lines[j].strip().lower()
                 if f"if exist {filename}" in next_stripped:
-                    issues.append(LintIssue(
-                        line_number=j + 1,
-                        rule=RULES["P001"],
-                        context=f"Redundant existence check for {filename} "
-                                f"(first check on line {i + 1})"
-                    ))
+                    issues.append(
+                        LintIssue(
+                            line_number=j + 1,
+                            rule=RULES["P001"],
+                            context=f"Redundant existence check for {filename} "
+                            f"(first check on line {i + 1})",
+                        )
+                    )
                     break
 
     return issues
@@ -1285,11 +1492,14 @@ def _check_code_duplication(lines: List[str]) -> List[LintIssue]:
     for _normalized_cmd, line_numbers in command_blocks.items():
         if len(line_numbers) > 2:  # Found 3+ similar commands
             for line_num in line_numbers[1:]:  # Flag all but the first
-                issues.append(LintIssue(
-                    line_number=line_num,
-                    rule=RULES["P002"],
-                    context=f"Similar command pattern repeated (also on lines {line_numbers[0]})"
-                ))
+                issues.append(
+                    LintIssue(
+                        line_number=line_num,
+                        rule=RULES["P002"],
+                        context=f"Similar command pattern repeated "
+                        f"(also on lines {line_numbers[0]})",
+                    )
+                )
 
     return issues
 
@@ -1341,14 +1551,21 @@ def print_summary(issues: List[LintIssue]) -> None:
     print(f"Total issues: {total_issues}")
     if most_common_rule[0]:
         most_common_rule_obj = RULES[most_common_rule[0]]
-        print(f"Most common issue: '{most_common_rule_obj.name}' "
-              f"({most_common_rule[0]}) - {most_common_rule[1]} occurrences")
+        print(
+            f"Most common issue: '{most_common_rule_obj.name}' "
+            f"({most_common_rule[0]}) - {most_common_rule[1]} occurrences"
+        )
     else:
         print("No issues found")
 
     print("\nIssues by severity:")
-    severity_order = [RuleSeverity.ERROR, RuleSeverity.WARNING, RuleSeverity.STYLE,
-                     RuleSeverity.SECURITY, RuleSeverity.PERFORMANCE]
+    severity_order = [
+        RuleSeverity.ERROR,
+        RuleSeverity.WARNING,
+        RuleSeverity.STYLE,
+        RuleSeverity.SECURITY,
+        RuleSeverity.PERFORMANCE,
+    ]
     for severity in severity_order:
         count = severity_counts.get(severity, 0)
         if count > 0:
@@ -1373,8 +1590,13 @@ def print_detailed(issues: List[LintIssue]) -> None:
     print("\nDETAILED ISSUES:")
     print("----------------")
 
-    severity_order = [RuleSeverity.ERROR, RuleSeverity.WARNING, RuleSeverity.STYLE,
-                     RuleSeverity.SECURITY, RuleSeverity.PERFORMANCE]
+    severity_order = [
+        RuleSeverity.ERROR,
+        RuleSeverity.WARNING,
+        RuleSeverity.STYLE,
+        RuleSeverity.SECURITY,
+        RuleSeverity.PERFORMANCE,
+    ]
 
     for severity in severity_order:
         if severity not in grouped:
@@ -1435,8 +1657,13 @@ def print_severity_info(issues: List[LintIssue]) -> None:
     print("\nSEVERITY BREAKDOWN:")
     print("====================")
 
-    severity_order = [RuleSeverity.ERROR, RuleSeverity.WARNING, RuleSeverity.STYLE,
-                     RuleSeverity.SECURITY, RuleSeverity.PERFORMANCE]
+    severity_order = [
+        RuleSeverity.ERROR,
+        RuleSeverity.WARNING,
+        RuleSeverity.STYLE,
+        RuleSeverity.SECURITY,
+        RuleSeverity.PERFORMANCE,
+    ]
 
     for severity in severity_order:
         count = severity_counts.get(severity, 0)
@@ -1504,12 +1731,16 @@ def main() -> None:  # pylint: disable=too-many-branches
     # Exit with appropriate code
     error_count = sum(1 for issue in issues if issue.rule.severity == RuleSeverity.ERROR)
     if error_count > 0:
-        print(f"\n??  Found {error_count} critical "
-              f"error{'s' if error_count != 1 else ''} that must be fixed.")
+        print(
+            f"\n??  Found {error_count} critical "
+            f"error{'s' if error_count != 1 else ''} that must be fixed."
+        )
         sys.exit(1)
     elif issues:
-        print(f"\n? No critical errors found, but {len(issues)} "
-              f"issue{'s' if len(issues) != 1 else ''} detected.")
+        print(
+            f"\n? No critical errors found, but {len(issues)} "
+            f"issue{'s' if len(issues) != 1 else ''} detected."
+        )
         sys.exit(0)
     else:
         print("\n?? No issues found! Your batch file looks great!")

@@ -77,9 +77,7 @@ REM No SET commands, so SETLOCAL is unnecessary
         try:
             # Test with performance rules enabled (default)
             issues_enabled = lint_batch_file(temp_path)
-            _ = [
-                i for i in issues_enabled if i.rule.severity.value == "Performance"
-            ]
+            _ = [i for i in issues_enabled if i.rule.severity.value == "Performance"]
             # May or may not have performance issues depending on the exact logic
 
             # Test with performance rules disabled
@@ -127,10 +125,12 @@ class TestInputValidation:
         """Test validation of None file path."""
         with pytest.raises(ValueError, match="file_path must be a non-empty string"):
             lint_batch_file(None)
+
     def test_non_string_file_path(self) -> None:
         """Test validation of non-string file path."""
         with pytest.raises(ValueError, match="file_path must be a non-empty string"):
             lint_batch_file(123)
+
     def test_nonexistent_file(self) -> None:
         """Test handling of nonexistent file."""
         nonexistent_path = "definitely_does_not_exist.bat"

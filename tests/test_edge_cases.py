@@ -25,8 +25,9 @@ class TestFileEncodingEdgeCases:
 
     def test_chardet_oserror_handling(self) -> None:
         """Test handling of OSError during chardet detection."""
-        with patch("builtins.open", mock_open(read_data=b"test content")), patch(
-            "chardet.detect", side_effect=OSError("Test OSError")
+        with (
+            patch("builtins.open", mock_open(read_data=b"test content")),
+            patch("chardet.detect", side_effect=OSError("Test OSError")),
         ):
             lines, encoding = read_file_with_encoding("test.bat")
             assert encoding in ["utf-8", "utf-8-sig", "latin1", "cp1252", "iso-8859-1", "ascii"]
@@ -34,8 +35,9 @@ class TestFileEncodingEdgeCases:
 
     def test_chardet_valueerror_handling(self) -> None:
         """Test handling of ValueError during chardet detection."""
-        with patch("builtins.open", mock_open(read_data=b"test content")), patch(
-            "chardet.detect", side_effect=ValueError("Test ValueError")
+        with (
+            patch("builtins.open", mock_open(read_data=b"test content")),
+            patch("chardet.detect", side_effect=ValueError("Test ValueError")),
         ):
             lines, encoding = read_file_with_encoding("test.bat")
             assert encoding in ["utf-8", "utf-8-sig", "latin1", "cp1252", "iso-8859-1", "ascii"]
@@ -43,8 +45,9 @@ class TestFileEncodingEdgeCases:
 
     def test_chardet_typeerror_handling(self) -> None:
         """Test handling of TypeError during chardet detection."""
-        with patch("builtins.open", mock_open(read_data=b"test content")), patch(
-            "chardet.detect", side_effect=TypeError("Test TypeError")
+        with (
+            patch("builtins.open", mock_open(read_data=b"test content")),
+            patch("chardet.detect", side_effect=TypeError("Test TypeError")),
         ):
             lines, encoding = read_file_with_encoding("test.bat")
             assert encoding in ["utf-8", "utf-8-sig", "latin1", "cp1252", "iso-8859-1", "ascii"]
@@ -443,7 +446,7 @@ class TestGlobalChecks:
         # "copy FILE FILE" is only 14 chars, so need longer normalized commands
         lines = [
             "copy longfile.txt to backup\\longfile.txt with extra text here",
-            "copy longfile2.txt to backup\\longfile2.txt with extra text here", 
+            "copy longfile2.txt to backup\\longfile2.txt with extra text here",
             "copy longfile3.txt to backup\\longfile3.txt with extra text here",
             "copy longfile4.txt to backup\\longfile4.txt with extra text here",
         ]

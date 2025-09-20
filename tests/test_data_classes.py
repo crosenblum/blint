@@ -38,7 +38,8 @@ class TestRuleValidation:
         """Test Rule validation with None code."""
         with pytest.raises(ValueError, match="Rule code must be a non-empty string"):
             Rule(
-                code=None,                name="Test Rule",
+                code=None,
+                name="Test Rule",
                 severity=RuleSeverity.ERROR,
                 explanation="This is a test rule",
                 recommendation="Fix the issue",
@@ -48,7 +49,8 @@ class TestRuleValidation:
         """Test Rule validation with non-string code."""
         with pytest.raises(ValueError, match="Rule code must be a non-empty string"):
             Rule(
-                code=123,                name="Test Rule",
+                code=123,
+                name="Test Rule",
                 severity=RuleSeverity.ERROR,
                 explanation="This is a test rule",
                 recommendation="Fix the issue",
@@ -70,7 +72,8 @@ class TestRuleValidation:
         with pytest.raises(ValueError, match="Rule name must be a non-empty string"):
             Rule(
                 code="E001",
-                name=None,                severity=RuleSeverity.ERROR,
+                name=None,
+                severity=RuleSeverity.ERROR,
                 explanation="This is a test rule",
                 recommendation="Fix the issue",
             )
@@ -80,7 +83,8 @@ class TestRuleValidation:
         with pytest.raises(ValueError, match="Rule name must be a non-empty string"):
             Rule(
                 code="E001",
-                name=123,                severity=RuleSeverity.ERROR,
+                name=123,
+                severity=RuleSeverity.ERROR,
                 explanation="This is a test rule",
                 recommendation="Fix the issue",
             )
@@ -91,7 +95,8 @@ class TestRuleValidation:
             Rule(
                 code="E001",
                 name="Test Rule",
-                severity="invalid",                explanation="This is a test rule",
+                severity="invalid",
+                explanation="This is a test rule",
                 recommendation="Fix the issue",
             )
 
@@ -113,7 +118,8 @@ class TestRuleValidation:
                 code="E001",
                 name="Test Rule",
                 severity=RuleSeverity.ERROR,
-                explanation=None,                recommendation="Fix the issue",
+                explanation=None,
+                recommendation="Fix the issue",
             )
 
     def test_rule_non_string_explanation_validation(self) -> None:
@@ -123,7 +129,8 @@ class TestRuleValidation:
                 code="E001",
                 name="Test Rule",
                 severity=RuleSeverity.ERROR,
-                explanation=123,                recommendation="Fix the issue",
+                explanation=123,
+                recommendation="Fix the issue",
             )
 
     def test_rule_empty_recommendation_validation(self) -> None:
@@ -145,7 +152,8 @@ class TestRuleValidation:
                 name="Test Rule",
                 severity=RuleSeverity.ERROR,
                 explanation="This is a test rule",
-                recommendation=None,            )
+                recommendation=None,
+            )
 
     def test_rule_non_string_recommendation_validation(self) -> None:
         """Test Rule validation with non-string recommendation."""
@@ -155,7 +163,8 @@ class TestRuleValidation:
                 name="Test Rule",
                 severity=RuleSeverity.ERROR,
                 explanation="This is a test rule",
-                recommendation=123,            )
+                recommendation=123,
+            )
 
 
 class TestLintIssueValidation:
@@ -217,6 +226,7 @@ class TestLintIssueValidation:
         """Test LintIssue validation with invalid rule."""
         with pytest.raises(ValueError, match="Rule must be a Rule instance"):
             LintIssue(line_number=5, rule="invalid")
+
     def test_lint_issue_none_rule_validation(self) -> None:
         """Test LintIssue validation with None rule."""
         with pytest.raises(ValueError, match="Rule must be a Rule instance"):
