@@ -53,6 +53,7 @@ dev = [
     # Linting
     "pylint",
     "mypy",
+    "autopep8",
     # Code Formatting
     "black",
     "isort",

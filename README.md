@@ -2,7 +2,7 @@
 
 **Blint** is a linter for Windows batch files (`.bat` and `.cmd`). It provides comprehensive static analysis to identify syntax errors, security vulnerabilities, performance issues, and style problems. Blint helps you write safer, more reliable, and maintainable batch scripts. Even in 2025, batch files deserve professional tooling! 💻
  
-✅ **Thread-Safe** - Supports concurrent processing  
+✅ **Thread-Safe Design** - Uses immutable rules and local variables for safe concurrent usage  
 ✅ **Performance Optimized** - Handles large files (10MB+) efficiently  
 ✅ **Enterprise Features** - Configurable rules, logging, robust error handling  
 ✅ **Unicode Support** - International characters and filenames  
@@ -11,7 +11,7 @@
 ## Features ✨
 
 ### 🔍 **Rule Coverage**
-- **70+ Built-in Rules** across 5 severity levels
+- **49 Built-in Rules** across 5 severity levels
 - **Error Level (E001-E999)**: Critical syntax errors that prevent execution
 - **Warning Level (W001-W999)**: Potential runtime issues and bad practices
 - **Style Level (S001-S999)**: Code formatting and readability improvements
@@ -31,7 +31,7 @@
 - **Security Scanning**: Finds command injection risks and dangerous operations
 - **Performance Optimization**: Suggests efficiency improvements
 - **Cross-Platform Compatibility**: Warns about Windows version issues
-- **Thread-Safe Operations**: Supports concurrent analysis of multiple files
+- **Thread-Safe Design**: Safe for concurrent usage with immutable rules and local state
 - **Large File Handling**: Efficiently processes files up to 10MB+ with performance warnings
 - **Robust Encoding Detection**: Handles UTF-8, UTF-16, Latin-1, and 9+ encoding formats
 
@@ -105,7 +105,8 @@ issues = blint.lint_batch_file(
     enable_performance_rules=True  # Keep performance checks
 )
 
-# Thread-safe concurrent processing
+# Thread-safe design allows safe concurrent usage
+# You can implement your own concurrent processing if needed
 from concurrent.futures import ThreadPoolExecutor
 
 files = ["script1.bat", "script2.cmd", "script3.bat"]
