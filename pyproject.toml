@@ -33,7 +33,7 @@ classifiers = [
     "Environment :: Console",
 ]
 requires-python = ">=3.9"
-dependencies = []
+dependencies = ["chardet"]
 
 [project.optional-dependencies]
 dev = [
