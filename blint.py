@@ -471,7 +471,7 @@ def read_file_with_encoding(file_path: str) -> Tuple[List[str], str]:
 
     # Try to detect encoding using chardet if available
     try:
-        import chardet  # pylint: disable=import-outside-toplevel
+        import chardet  # pylint: disable=import-outside-toplevel  # isort: skip
 
         with open(file_path, "rb") as file_handle:
             raw_data = file_handle.read()
