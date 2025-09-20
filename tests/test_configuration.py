@@ -1,8 +1,8 @@
 """Tests for configuration options and new functionality."""
 
 import os
-import tempfile
 from pathlib import Path
+import tempfile
 
 import pytest
 
@@ -17,10 +17,10 @@ class TestConfigurationOptions:
         # Create a file with a line that's 100 characters long
         long_line = "REM " + "A" * 96  # Total 100 characters
         content = f"@ECHO OFF\n{long_line}\nEXIT /B 0\n"
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as f:
-            f.write(content)
-            temp_path = f.name
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as temp_file:
+            temp_file.write(content)
+            temp_path = temp_file.name
 
         try:
             # Test with default max length (120) - should not trigger
@@ -43,10 +43,10 @@ class TestConfigurationOptions:
 echo test  
 echo another line that is very very very very very very very very very very very very very very very very very very very long
 """
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as f:
-            f.write(content)
-            temp_path = f.name
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as temp_file:
+            temp_file.write(content)
+            temp_path = temp_file.name
 
         try:
             # Test with style rules enabled (default)
@@ -69,20 +69,24 @@ SETLOCAL
 echo test
 REM No SET commands, so SETLOCAL is unnecessary
 """
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as f:
-            f.write(content)
-            temp_path = f.name
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as temp_file:
+            temp_file.write(content)
+            temp_path = temp_file.name
 
         try:
             # Test with performance rules enabled (default)
             issues_enabled = lint_batch_file(temp_path)
-            perf_issues_enabled = [i for i in issues_enabled if i.rule.severity.value == "Performance"]
+            _ = [
+                i for i in issues_enabled if i.rule.severity.value == "Performance"
+            ]
             # May or may not have performance issues depending on the exact logic
 
             # Test with performance rules disabled
             issues_disabled = lint_batch_file(temp_path, enable_performance_rules=False)
-            perf_issues_disabled = [i for i in issues_disabled if i.rule.severity.value == "Performance"]
+            perf_issues_disabled = [
+                i for i in issues_disabled if i.rule.severity.value == "Performance"
+            ]
             assert len(perf_issues_disabled) == 0  # Should have no performance issues
 
         finally:
@@ -94,15 +98,16 @@ REM No SET commands, so SETLOCAL is unnecessary
 reg delete HKLM\\Software\\Test /f
 set VAR=unsafe value without quotes
 """
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as f:
-            f.write(content)
-            temp_path = f.name
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as temp_file:
+            temp_file.write(content)
+            temp_path = temp_file.name
 
         try:
             # Security rules should always be enabled regardless of other settings
-            issues = lint_batch_file(temp_path, enable_style_rules=False, 
-                                   enable_performance_rules=False)
+            issues = lint_batch_file(
+                temp_path, enable_style_rules=False, enable_performance_rules=False
+            )
             security_issues = [i for i in issues if i.rule.severity.value == "Security"]
             assert len(security_issues) >= 1  # Should always have security checks
 
@@ -144,10 +149,10 @@ class TestInputValidation:
         """Test large file warning (indirectly through successful processing)."""
         # Create a moderately large file (not 10MB but still substantial)
         large_content = "@ECHO OFF\n" + ("REM Large file line\n" * 10000) + "EXIT /B 0\n"
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as f:
-            f.write(large_content)
-            temp_path = f.name
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as temp_file:
+            temp_file.write(large_content)
+            temp_path = temp_file.name
 
         try:
             # Should handle large files without issues
@@ -168,29 +173,45 @@ echo %UNDEFINED_VAR%
 echo trailing whitespace  
 echo this line is quite long and exceeds typical line length recommendations for readability
 """
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as f:
-            f.write(content)
-            temp_path = f.name
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as temp_file:
+            temp_file.write(content)
+            temp_path = temp_file.name
 
         try:
             # Test various combinations
             configs = [
-                {"max_line_length": 80, "enable_style_rules": True, "enable_performance_rules": True},
-                {"max_line_length": 200, "enable_style_rules": False, "enable_performance_rules": True},
-                {"max_line_length": 100, "enable_style_rules": True, "enable_performance_rules": False},
-                {"max_line_length": 60, "enable_style_rules": False, "enable_performance_rules": False},
+                {
+                    "max_line_length": 80,
+                    "enable_style_rules": True,
+                    "enable_performance_rules": True,
+                },
+                {
+                    "max_line_length": 200,
+                    "enable_style_rules": False,
+                    "enable_performance_rules": True,
+                },
+                {
+                    "max_line_length": 100,
+                    "enable_style_rules": True,
+                    "enable_performance_rules": False,
+                },
+                {
+                    "max_line_length": 60,
+                    "enable_style_rules": False,
+                    "enable_performance_rules": False,
+                },
             ]
-            
+
             for config in configs:
                 issues = lint_batch_file(temp_path, **config)
                 assert isinstance(issues, list)
-                
+
                 # Verify configuration is respected
                 if not config["enable_style_rules"]:
                     style_issues = [i for i in issues if i.rule.severity.value == "Style"]
                     assert len(style_issues) == 0
-                
+
                 if not config["enable_performance_rules"]:
                     perf_issues = [i for i in issues if i.rule.severity.value == "Performance"]
                     assert len(perf_issues) == 0
@@ -201,19 +222,19 @@ echo this line is quite long and exceeds typical line length recommendations for
     def test_pathlib_path_support(self) -> None:
         """Test that Path objects are handled correctly."""
         content = "@ECHO OFF\necho test\nEXIT /B 0\n"
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as f:
-            f.write(content)
-            temp_path = f.name
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as temp_file:
+            temp_file.write(content)
+            temp_path = temp_file.name
 
         try:
             # Test with string path
             issues_str = lint_batch_file(temp_path)
-            
+
             # Test with Path object (should be converted to string internally)
             path_obj = Path(temp_path)
             issues_path = lint_batch_file(str(path_obj))
-            
+
             # Results should be the same
             assert len(issues_str) == len(issues_path)
 
@@ -223,13 +244,13 @@ echo this line is quite long and exceeds typical line length recommendations for
     def test_unicode_filename_support(self) -> None:
         """Test support for Unicode filenames."""
         content = "@ECHO OFF\necho test\nEXIT /B 0\n"
-        
+
         # Create file with Unicode characters in name
         with tempfile.TemporaryDirectory() as temp_dir:
             unicode_filename = os.path.join(temp_dir, "tëst_fîlé.bat")
-            with open(unicode_filename, 'w', encoding='utf-8') as f:
-                f.write(content)
-            
+            with open(unicode_filename, "w", encoding="utf-8") as temp_file:
+                temp_file.write(content)
+
             # Should handle Unicode filenames
             issues = lint_batch_file(unicode_filename)
             assert isinstance(issues, list)

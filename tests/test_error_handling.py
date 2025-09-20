@@ -2,16 +2,18 @@
 
 import os
 import tempfile
-from pathlib import Path
-from unittest.mock import Mock, patch, mock_open
+from unittest.mock import mock_open, patch
 import warnings
 
 import pytest
 
 from blint import (
-    lint_batch_file, read_file_with_encoding, main, 
-    _check_syntax_errors, _check_warning_issues,
-    _check_security_issues, RULES
+    _check_security_issues,
+    _check_syntax_errors,
+    _check_warning_issues,
+    lint_batch_file,
+    main,
+    read_file_with_encoding,
 )
 
 
@@ -20,29 +22,29 @@ class TestRealWorldErrorHandling:
 
     def test_file_encoding_all_fail_scenario(self) -> None:
         """Test scenario where all encoding attempts fail with different errors."""
+
         def mock_open_that_always_fails(*args, **kwargs):
-            if 'rb' in str(args) or 'rb' in str(kwargs):
+            if "rb" in str(args) or "rb" in str(kwargs):
                 # Allow binary read for chardet
-                return mock_open(read_data=b'test data')(*args, **kwargs)
-            if 'encoding' in kwargs:
+                return mock_open(read_data=b"test data")(*args, **kwargs)
+            if "encoding" in kwargs:
                 # Simulate different types of failures
-                if kwargs['encoding'] == 'utf-8':
-                    raise UnicodeDecodeError('utf-8', b'test', 0, 1, 'utf-8 error')
-                elif kwargs['encoding'] == 'latin1':
+                if kwargs["encoding"] == "utf-8":
+                    raise UnicodeDecodeError("utf-8", b"test", 0, 1, "utf-8 error")
+                if kwargs["encoding"] == "latin1":
                     raise ValueError("Invalid encoding value")
-                else:
-                    raise LookupError("Unknown encoding")
+                raise LookupError("Unknown encoding")
             return mock_open(read_data="test")(*args, **kwargs)
 
-        with patch('builtins.open', side_effect=mock_open_that_always_fails):
+        with patch("builtins.open", side_effect=mock_open_that_always_fails):
             with pytest.raises(OSError, match="All encoding attempts failed"):
                 read_file_with_encoding("test.bat")
 
     def test_empty_file_edge_case_in_context(self) -> None:
         """Test handling empty files in real linting context."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as f:
-            f.write("")  # Empty file
-            temp_path = f.name
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as temp_file:
+            temp_file.write("")  # Empty file
+            temp_path = temp_file.name
 
         try:
             issues = lint_batch_file(temp_path)
@@ -54,10 +56,10 @@ class TestRealWorldErrorHandling:
         """Test handling of large batch files."""
         # Create a large batch file with many lines
         large_content = "@ECHO OFF\n" + "REM Large file test\n" * 1000 + "EXIT /B 0\n"
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as f:
-            f.write(large_content)
-            temp_path = f.name
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as temp_file:
+            temp_file.write(large_content)
+            temp_path = temp_file.name
 
         try:
             issues = lint_batch_file(temp_path)
@@ -68,11 +70,11 @@ class TestRealWorldErrorHandling:
 
     def test_binary_file_handling(self) -> None:
         """Test handling of binary files masquerading as batch files."""
-        binary_content = b'\x00\x01\x02\x03' * 100  # Binary content
-        
-        with tempfile.NamedTemporaryFile(mode='wb', suffix='.bat', delete=False) as f:
-            f.write(binary_content)
-            temp_path = f.name
+        binary_content = b"\x00\x01\x02\x03" * 100  # Binary content
+
+        with tempfile.NamedTemporaryFile(mode="wb", suffix=".bat", delete=False) as temp_file:
+            temp_file.write(binary_content)
+            temp_path = temp_file.name
 
         try:
             # Should handle binary files gracefully
@@ -84,11 +86,13 @@ class TestRealWorldErrorHandling:
 
     def test_file_with_mixed_line_endings(self) -> None:
         """Test handling of files with mixed line endings."""
-        mixed_content = "@ECHO OFF\r\necho Windows line ending\necho Unix line ending\r\necho Mixed\n"
-        
-        with tempfile.NamedTemporaryFile(mode='wb', suffix='.bat', delete=False) as f:
-            f.write(mixed_content.encode('utf-8'))
-            temp_path = f.name
+        mixed_content = (
+            "@ECHO OFF\r\necho Windows line ending\necho Unix line ending\r\necho Mixed\n"
+        )
+
+        with tempfile.NamedTemporaryFile(mode="wb", suffix=".bat", delete=False) as temp_file:
+            temp_file.write(mixed_content.encode("utf-8"))
+            temp_path = temp_file.name
 
         try:
             issues = lint_batch_file(temp_path)
@@ -101,10 +105,10 @@ class TestRealWorldErrorHandling:
         """Test handling of files with extremely long lines."""
         long_line = "REM " + "A" * 500 + "\n"
         content = "@ECHO OFF\n" + long_line + "EXIT /B 0\n"
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as f:
-            f.write(content)
-            temp_path = f.name
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as temp_file:
+            temp_file.write(content)
+            temp_path = temp_file.name
 
         try:
             issues = lint_batch_file(temp_path)
@@ -117,10 +121,10 @@ class TestRealWorldErrorHandling:
     def test_concurrent_file_access(self) -> None:
         """Test handling concurrent access to the same file."""
         content = "@ECHO OFF\necho test\nEXIT /B 0\n"
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as f:
-            f.write(content)
-            temp_path = f.name
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as temp_file:
+            temp_file.write(content)
+            temp_path = temp_file.name
 
         try:
             # Multiple concurrent accesses should work
@@ -137,7 +141,7 @@ class TestSpecificEdgeCases:
     def test_syntax_error_edge_cases(self) -> None:
         """Test specific syntax error edge cases."""
         labels = {":test": 1, ":end": 5}
-        
+
         # Test GOTO with various formats
         test_cases = [
             ("goto test", 0),  # Should find :test
@@ -146,7 +150,7 @@ class TestSpecificEdgeCases:
             ("goto missing", 1),  # Missing label
             # Note: bare "goto" without target doesn't match the regex pattern
         ]
-        
+
         for command, expected_issues in test_cases:
             issues = _check_syntax_errors(command, 2, labels)
             goto_issues = [i for i in issues if i.rule.code == "E002"]
@@ -155,7 +159,7 @@ class TestSpecificEdgeCases:
     def test_warning_issue_edge_cases(self) -> None:
         """Test warning level edge cases."""
         set_vars = {"DEFINED_VAR", "PATH", "TEMP"}
-        
+
         # Test unquoted variables in different contexts
         test_cases = [
             ("if %UNDEFINED_VAR%==value echo test", True),  # Should trigger W005
@@ -163,7 +167,7 @@ class TestSpecificEdgeCases:
             ("set NEWVAR=%PATH%", True),  # Should trigger W005
             ('if "%UNDEFINED_VAR%"=="value" echo test', False),  # Quoted, should not trigger
         ]
-        
+
         for command, should_trigger in test_cases:
             issues = _check_warning_issues(command, 1, set_vars, False)
             w005_issues = [i for i in issues if i.rule.code == "W005"]
@@ -177,20 +181,17 @@ class TestSpecificEdgeCases:
             # Command injection patterns
             ("set /p CMD=Enter command: && %CMD%", "SEC001"),
             ("set /p INPUT=Enter: && echo %INPUT%", "SEC001"),
-            
             # Unsafe SET commands
             ("set VAR=value with spaces", "SEC002"),
             ("set PATH=%PATH%;C:\\new", "SEC002"),
-            
-            # Registry operations  
+            # Registry operations
             ("reg delete HKLM\\Software\\Test /f", "SEC004"),
             ("regedit /s dangerous.reg", None),  # May or may not trigger depending on pattern
-            
             # Privilege checks
             ("net user admin password /add", "SEC005"),
             ("sc create TestService binpath=test.exe", "SEC005"),
         ]
-        
+
         for command, expected_rule in test_cases:
             issues = _check_security_issues(command, 1)
             if expected_rule:
@@ -202,13 +203,13 @@ class TestSpecificEdgeCases:
         test_cases = [
             "echo café",  # Unicode characters
             "echo naïve",  # Unicode with diacritics
-            "echo 测试",   # Chinese characters
-            "echo 🚀",     # Emoji
-            "echo \"quotes with spaces\"",  # Quotes
+            "echo 测试",  # Chinese characters
+            "echo 🚀",  # Emoji
+            'echo "quotes with spaces"',  # Quotes
             "echo 'single quotes'",  # Single quotes
             "REM Comment with émojis 💻",  # Comment with Unicode
         ]
-        
+
         set_vars = set()
         for command in test_cases:
             # Should handle Unicode gracefully
@@ -225,15 +226,15 @@ class TestMainFunctionEdgeCases:
     def test_main_with_invalid_file_extension(self) -> None:
         """Test main function with invalid file extensions."""
         # Create a test file with wrong extension
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
-            f.write("@ECHO OFF\necho test")
-            temp_path = f.name
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as temp_file:
+            temp_file.write("@ECHO OFF\necho test")
+            temp_path = temp_file.name
 
         try:
             # Main function actually processes files regardless of extension
             # if they exist, but shows help for non-.bat/.cmd files in argv parsing
-            with patch('sys.argv', ['blint.py', temp_path]):
-                with patch('sys.exit'):
+            with patch("sys.argv", ["blint.py", temp_path]):
+                with patch("sys.exit"):
                     main()
                     # The function will show help and return normally
         finally:
@@ -243,15 +244,17 @@ class TestMainFunctionEdgeCases:
         """Test main function with encoding warnings."""
         # Create a file that will trigger encoding warnings
         content = "@ECHO OFF\necho test\n"
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False, encoding='latin1') as f:
-            f.write(content)
-            temp_path = f.name
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".bat", delete=False, encoding="latin1"
+        ) as temp_file:
+            temp_file.write(content)
+            temp_path = temp_file.name
 
         try:
-            with patch('sys.argv', ['blint.py', temp_path]):
-                with patch('sys.exit'):
-                    with warnings.catch_warnings(record=True) as w:
+            with patch("sys.argv", ["blint.py", temp_path]):
+                with patch("sys.exit"):
+                    with warnings.catch_warnings(record=True):
                         warnings.simplefilter("always")
                         main()
                         # May or may not have warnings depending on encoding detection
@@ -261,17 +264,17 @@ class TestMainFunctionEdgeCases:
     def test_path_validation_comprehensive(self) -> None:
         """Test comprehensive path validation."""
         labels = {}
-        
+
         # Test various invalid path patterns
         invalid_paths = [
-            'copy "file<name.txt", dest',   # < character
-            'copy "file>name.txt", dest',   # > character  
-            'copy "file|name.txt", dest',   # | character
-            'copy "file*name.txt", dest',   # * character
-            'copy "file?name.txt", dest',   # ? character
+            'copy "file<name.txt", dest',  # < character
+            'copy "file>name.txt", dest',  # > character
+            'copy "file|name.txt", dest',  # | character
+            'copy "file*name.txt", dest',  # * character
+            'copy "file?name.txt", dest',  # ? character
             "copy 'path<with>invalid', dest",  # Single quotes
         ]
-        
+
         for command in invalid_paths:
             issues = _check_syntax_errors(command, 1, labels)
             path_issues = [i for i in issues if i.rule.code == "E005"]
@@ -289,7 +292,7 @@ class TestPerformanceAndScalability:
             lines.append(f":label{i}")
             lines.append(f"echo Processing {i}")
         lines.append("EXIT /B 0")
-        
+
         # Should handle many labels efficiently
         issues = lint_batch_file_from_lines(lines)
         assert isinstance(issues, list)
@@ -301,7 +304,7 @@ class TestPerformanceAndScalability:
         for i in range(100):
             lines.append(f'set "VAR{i}=value{i}"')
         lines.append("EXIT /B 0")
-        
+
         # Should handle many variables efficiently
         issues = lint_batch_file_from_lines(lines)
         assert isinstance(issues, list)
@@ -310,10 +313,10 @@ class TestPerformanceAndScalability:
 def lint_batch_file_from_lines(lines: list) -> list:
     """Helper function to lint batch file from list of lines."""
     content = "\n".join(lines)
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as f:
-        f.write(content)
-        temp_path = f.name
-    
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as temp_file:
+        temp_file.write(content)
+        temp_path = temp_file.name
+
     try:
         return lint_batch_file(temp_path)
     finally:

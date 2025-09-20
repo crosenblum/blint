@@ -4,7 +4,7 @@ import os
 import re
 import tempfile
 
-from blint import DANGEROUS_COMMANDS, lint_batch_file, RULES, RuleSeverity
+from blint import DANGEROUS_COMMANDS, RULES, RuleSeverity, lint_batch_file
 
 
 class TestLintBatchFile:
@@ -361,7 +361,8 @@ echo Process finished
             # This should be a well-formed script with minimal critical issues
             # Filter out any style-only issues
             critical_issues = [
-                issue for issue in issues
+                issue
+                for issue in issues
                 if issue.rule.severity in [RuleSeverity.ERROR, RuleSeverity.WARNING]
             ]
             # Allow for issues that the linter correctly identifies
@@ -412,13 +413,12 @@ class TestRuleSystem:
             assert isinstance(rule.name, str), f"Rule {rule_code} has invalid name"
             assert isinstance(rule.severity, RuleSeverity), f"Rule {rule_code} has invalid severity"
             assert isinstance(rule.explanation, str), f"Rule {rule_code} has invalid explanation"
-            assert isinstance(rule.recommendation, str), \
-                   f"Rule {rule_code} has invalid recommendation"
+            assert isinstance(
+                rule.recommendation, str
+            ), f"Rule {rule_code} has invalid recommendation"
             assert len(rule.explanation) > 0, f"Rule {rule_code} has empty explanation"
-            assert len(rule.recommendation) > 0, \
-                   f"Rule {rule_code} has empty recommendation"
-            assert rule.code == rule_code, \
-                   f"Rule code mismatch: {rule.code} != {rule_code}"
+            assert len(rule.recommendation) > 0, f"Rule {rule_code} has empty recommendation"
+            assert rule.code == rule_code, f"Rule code mismatch: {rule.code} != {rule_code}"
 
     def test_rule_code_categories(self) -> None:
         """Test that rule codes follow the proper categorization."""
@@ -426,35 +426,40 @@ class TestRuleSystem:
         warning_codes = [code for code in RULES if code.startswith("W")]
         security_codes = [code for code in RULES if code.startswith("SEC")]
         # Style codes start with S but not SEC
-        style_codes = [code for code in RULES
-                       if code.startswith("S") and not code.startswith("SEC")]
-        performance_codes = [code for code in RULES
-                             if code.startswith("P")]
+        style_codes = [
+            code for code in RULES if code.startswith("S") and not code.startswith("SEC")
+        ]
+        performance_codes = [code for code in RULES if code.startswith("P")]
 
         # Check that Error codes have Error severity
         for code in error_codes:
-            assert RULES[code].severity == RuleSeverity.ERROR, \
-                   f"Rule {code} should have Error severity"
+            assert (
+                RULES[code].severity == RuleSeverity.ERROR
+            ), f"Rule {code} should have Error severity"
 
         # Check that Warning codes have Warning severity
         for code in warning_codes:
-            assert RULES[code].severity == RuleSeverity.WARNING, \
-                   f"Rule {code} should have Warning severity"
+            assert (
+                RULES[code].severity == RuleSeverity.WARNING
+            ), f"Rule {code} should have Warning severity"
 
         # Check that Style codes have Style severity
         for code in style_codes:
-            assert RULES[code].severity == RuleSeverity.STYLE, \
-                   f"Rule {code} should have Style severity"
+            assert (
+                RULES[code].severity == RuleSeverity.STYLE
+            ), f"Rule {code} should have Style severity"
 
         # Check that Security codes have Security severity
         for code in security_codes:
-            assert RULES[code].severity == RuleSeverity.SECURITY, \
-                   f"Rule {code} should have Security severity"
+            assert (
+                RULES[code].severity == RuleSeverity.SECURITY
+            ), f"Rule {code} should have Security severity"
 
         # Check that Performance codes have Performance severity
         for code in performance_codes:
-            assert RULES[code].severity == RuleSeverity.PERFORMANCE, \
-                   f"Rule {code} should have Performance severity"
+            assert (
+                RULES[code].severity == RuleSeverity.PERFORMANCE
+            ), f"Rule {code} should have Performance severity"
 
     def test_properly_quoted_set_commands_no_issues(self) -> None:
         """Test that properly quoted set commands don't trigger unsafe usage warnings."""
@@ -469,9 +474,7 @@ echo Done
             issues = lint_batch_file(temp_file)
 
             # Filter for unsafe set command issues
-            unsafe_set_issues = [
-                issue for issue in issues if issue.rule.code == "SEC002"
-            ]
+            unsafe_set_issues = [issue for issue in issues if issue.rule.code == "SEC002"]
 
             # Should NOT have unsafe set command issues because they're properly quoted
             assert len(unsafe_set_issues) == 0
@@ -495,15 +498,20 @@ echo Done
         for rule_code, rule in RULES.items():
             assert isinstance(rule_code, str)
             assert isinstance(rule, object)  # Rule dataclass instance
-            assert hasattr(rule, 'code')
-            assert hasattr(rule, 'name')
-            assert hasattr(rule, 'severity')
-            assert hasattr(rule, 'explanation')
-            assert hasattr(rule, 'recommendation')
+            assert hasattr(rule, "code")
+            assert hasattr(rule, "name")
+            assert hasattr(rule, "severity")
+            assert hasattr(rule, "explanation")
+            assert hasattr(rule, "recommendation")
 
         # Test RuleSeverity enum
-        valid_severities = {RuleSeverity.ERROR, RuleSeverity.WARNING, RuleSeverity.STYLE,
-                          RuleSeverity.SECURITY, RuleSeverity.PERFORMANCE}
+        valid_severities = {
+            RuleSeverity.ERROR,
+            RuleSeverity.WARNING,
+            RuleSeverity.STYLE,
+            RuleSeverity.SECURITY,
+            RuleSeverity.PERFORMANCE,
+        }
         for rule in RULES.values():
             assert rule.severity in valid_severities
 
@@ -647,7 +655,7 @@ exit /b 0
             issues = lint_batch_file(bat_file)
             rule_codes = [issue.rule.code for issue in issues]
             assert "S007" in rule_codes  # BAT extension used instead of CMD
-            
+
             # Check the context message is specific about Windows versions
             s007_issues = [issue for issue in issues if issue.rule.code == "S007"]
             assert len(s007_issues) == 1

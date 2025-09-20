@@ -1,15 +1,14 @@
 """Tests for thread safety and concurrent operations."""
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import gc
 import os
 import tempfile
-import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from pathlib import Path
+import time
 from typing import List
 
-import pytest
 
-from blint import lint_batch_file, read_file_with_encoding, main
+from blint import lint_batch_file, read_file_with_encoding
 
 
 class TestThreadSafety:
@@ -21,16 +20,18 @@ class TestThreadSafety:
         test_files = []
         try:
             for i in range(5):
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as f:
-                    f.write(f"@ECHO OFF\necho Test file {i}\nEXIT /B 0\n")
-                    test_files.append(f.name)
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".bat", delete=False
+                ) as temp_file:
+                    temp_file.write(f"@ECHO OFF\necho Test file {i}\nEXIT /B 0\n")
+                    test_files.append(temp_file.name)
 
             def read_file_worker(file_path: str) -> tuple:
                 return read_file_with_encoding(file_path)
 
             # Test concurrent reading
             with ThreadPoolExecutor(max_workers=5) as executor:
-                futures = [executor.submit(read_file_worker, f) for f in test_files]
+                futures = [executor.submit(read_file_worker, file_path) for file_path in test_files]
                 results = [future.result() for future in as_completed(futures)]
 
             # All reads should succeed
@@ -41,9 +42,9 @@ class TestThreadSafety:
                 assert len(lines) >= 3  # Should have at least 3 lines
 
         finally:
-            for f in test_files:
+            for file_path in test_files:
                 try:
-                    os.unlink(f)
+                    os.unlink(file_path)
                 except OSError:
                     pass
 
@@ -57,20 +58,22 @@ class TestThreadSafety:
                 "echo test2\n",  # Missing @ECHO OFF
                 "@ECHO OFF\necho %UNDEFINED%\n",  # Undefined variable
                 "@ECHO OFF\necho test\ngoto missing\n",  # Missing label
-                "@ECHO OFF\necho hello world  \n"  # Trailing whitespace
+                "@ECHO OFF\necho hello world  \n",  # Trailing whitespace
             ]
 
-            for i, content in enumerate(test_contents):
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as f:
-                    f.write(content)
-                    test_files.append(f.name)
+            for _, content in enumerate(test_contents):
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".bat", delete=False
+                ) as temp_file:
+                    temp_file.write(content)
+                    test_files.append(temp_file.name)
 
             def lint_worker(file_path: str) -> List:
                 return lint_batch_file(file_path)
 
             # Test concurrent linting
             with ThreadPoolExecutor(max_workers=5) as executor:
-                futures = [executor.submit(lint_worker, f) for f in test_files]
+                futures = [executor.submit(lint_worker, file_path) for file_path in test_files]
                 results = [future.result() for future in as_completed(futures)]
 
             # All linting operations should succeed
@@ -79,19 +82,20 @@ class TestThreadSafety:
                 assert isinstance(issues, list)
 
         finally:
-            for f in test_files:
+            for file_path in test_files:
                 try:
-                    os.unlink(f)
+                    os.unlink(file_path)
                 except OSError:
                     pass
 
     def test_concurrent_same_file_access(self) -> None:
         """Test concurrent access to the same file."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as f:
-            f.write("@ECHO OFF\necho test\nEXIT /B 0\n")
-            temp_path = f.name
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as temp_file:
+            temp_file.write("@ECHO OFF\necho test\nEXIT /B 0\n")
+            temp_path = temp_file.name
 
         try:
+
             def lint_same_file() -> List:
                 return lint_batch_file(temp_path)
 
@@ -119,9 +123,11 @@ class TestThreadSafety:
         test_files = []
         try:
             for i in range(10):
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as f:
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".bat", delete=False
+                ) as temp_file:
                     # Create files with various issues
-                    content = f"@ECHO OFF\n"
+                    content = "@ECHO OFF\n"
                     if i % 2 == 0:
                         content += f"echo %VAR{i}%\n"  # Undefined variable
                     if i % 3 == 0:
@@ -131,9 +137,9 @@ class TestThreadSafety:
                     if i % 4 == 0:
                         content += "echo trailing space  \n"  # Trailing whitespace
                     content += "EXIT /B 0\n"
-                    
-                    f.write(content)
-                    test_files.append(f.name)
+
+                    temp_file.write(content)
+                    test_files.append(temp_file.name)
 
             def stress_worker() -> int:
                 """Worker function that processes multiple files."""
@@ -156,16 +162,16 @@ class TestThreadSafety:
                 assert result == first_result, f"Inconsistent results: {result} != {first_result}"
 
         finally:
-            for f in test_files:
+            for file_path in test_files:
                 try:
-                    os.unlink(f)
+                    os.unlink(file_path)
                 except OSError:
                     pass
 
     def test_race_condition_prevention(self) -> None:
         """Test that race conditions are prevented in data structures."""
         # Test concurrent access to shared data structures
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as temp_file:
             # Create a complex file that exercises many code paths
             content = """@ECHO OFF
 SETLOCAL ENABLEDELAYEDEXPANSION
@@ -197,10 +203,11 @@ del file.txt
 ENDLOCAL
 EXIT /B 0
 """
-            f.write(content)
-            temp_path = f.name
+            temp_file.write(content)
+            temp_path = temp_file.name
 
         try:
+
             def concurrent_analysis() -> tuple:
                 """Perform concurrent analysis that might share data structures."""
                 issues = lint_batch_file(temp_path)
@@ -208,7 +215,7 @@ EXIT /B 0
                     len(issues),
                     len([i for i in issues if i.rule.severity.value == "Error"]),
                     len([i for i in issues if i.rule.severity.value == "Warning"]),
-                    len([i for i in issues if i.rule.severity.value == "Style"])
+                    len([i for i in issues if i.rule.severity.value == "Style"]),
                 )
 
             # Run many concurrent analyses
@@ -220,7 +227,9 @@ EXIT /B 0
             assert len(results) == 100
             first_result = results[0]
             for result in results[1:]:
-                assert result == first_result, f"Race condition detected: {result} != {first_result}"
+                assert (
+                    result == first_result
+                ), f"Race condition detected: {result} != {first_result}"
 
         finally:
             os.unlink(temp_path)
@@ -233,72 +242,75 @@ class TestPerformance:
         """Test performance with large files."""
         # Create a large batch file
         lines = ["@ECHO OFF", "SETLOCAL"]
-        
+
         # Add many operations
         for i in range(1000):
             lines.append(f'SET "VAR{i}=value{i}"')
-            lines.append(f'echo Processing VAR{i}: %VAR{i}%')
+            lines.append(f"echo Processing VAR{i}: %VAR{i}%")
             if i % 100 == 0:
-                lines.append(f':label{i}')
-                lines.append(f'echo Reached checkpoint {i}')
-        
+                lines.append(f":label{i}")
+                lines.append(f"echo Reached checkpoint {i}")
+
         lines.extend(["ENDLOCAL", "EXIT /B 0"])
-        
+
         content = "\n".join(lines)
-        
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as f:
-            f.write(content)
-            temp_path = f.name
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".bat", delete=False) as temp_file:
+            temp_file.write(content)
+            temp_path = temp_file.name
 
         try:
-            import time
+
             start_time = time.time()
             issues = lint_batch_file(temp_path)
             end_time = time.time()
-            
+
             # Should complete within reasonable time (adjust as needed)
             processing_time = end_time - start_time
             assert processing_time < 10.0, f"Large file took too long: {processing_time}s"
-            
+
             # Should find issues but not crash
             assert isinstance(issues, list)
-            print(f"Large file ({len(lines)} lines) processed in {processing_time:.2f}s with {len(issues)} issues")
-            
+            print(
+                f"Large file ({len(lines)} lines) processed in "
+                f"{processing_time:.2f}s with {len(issues)} issues"
+            )
+
         finally:
             os.unlink(temp_path)
 
     def test_memory_efficiency(self) -> None:
         """Test memory efficiency with multiple files."""
-        import gc
-        import sys
-        
+
         # Create multiple files and process them
         test_files = []
         try:
             for i in range(20):
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as f:
-                    content = f"@ECHO OFF\n" + f"echo File {i}\n" * 50 + "EXIT /B 0\n"
-                    f.write(content)
-                    test_files.append(f.name)
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".bat", delete=False
+                ) as temp_file:
+                    content = "@ECHO OFF\n" + f"echo File {i}\n" * 50 + "EXIT /B 0\n"
+                    temp_file.write(content)
+                    test_files.append(temp_file.name)
 
             # Process files and check memory doesn't grow excessively
             initial_objects = len(gc.get_objects())
-            
+
             all_issues = []
             for file_path in test_files:
                 issues = lint_batch_file(file_path)
                 all_issues.extend(issues)
-                
+
             final_objects = len(gc.get_objects())
             object_growth = final_objects - initial_objects
-            
+
             # Memory growth should be reasonable
             assert object_growth < 10000, f"Excessive object growth: {object_growth}"
             print(f"Processed {len(test_files)} files, object growth: {object_growth}")
-            
+
         finally:
-            for f in test_files:
+            for file_path in test_files:
                 try:
-                    os.unlink(f)
+                    os.unlink(file_path)
                 except OSError:
                     pass

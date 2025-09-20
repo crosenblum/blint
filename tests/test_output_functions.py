@@ -8,8 +8,14 @@ import threading
 from typing import Callable, List
 
 from blint import (
-    group_issues, print_detailed, print_help, print_severity_info, print_summary,
-    RULES, LintIssue, RuleSeverity
+    RULES,
+    LintIssue,
+    RuleSeverity,
+    group_issues,
+    print_detailed,
+    print_help,
+    print_severity_info,
+    print_summary,
 )
 
 
@@ -32,7 +38,7 @@ class TestGroupIssues:
         issues = [
             self.create_lint_issue(1, "S001"),  # Style level
             self.create_lint_issue(5, "S004"),  # Style level
-            self.create_lint_issue(10, "S011"), # Style level
+            self.create_lint_issue(10, "S011"),  # Style level
         ]
         grouped = group_issues(issues)
         assert len(grouped) == 1
@@ -42,11 +48,11 @@ class TestGroupIssues:
     def test_group_issues_multiple_severities(self) -> None:
         """Test grouping issues of multiple severities."""
         issues = [
-            self.create_lint_issue(1, "S001"),   # Style
-            self.create_lint_issue(3, "W005"),   # Warning
-            self.create_lint_issue(5, "E002"),   # Error
-            self.create_lint_issue(7, "SEC002"), # Security
-            self.create_lint_issue(9, "P001"),   # Performance
+            self.create_lint_issue(1, "S001"),  # Style
+            self.create_lint_issue(3, "W005"),  # Warning
+            self.create_lint_issue(5, "E002"),  # Error
+            self.create_lint_issue(7, "SEC002"),  # Security
+            self.create_lint_issue(9, "P001"),  # Performance
         ]
         grouped = group_issues(issues)
         assert len(grouped) == 5  # All 5 severity levels
@@ -166,11 +172,11 @@ class TestPrintFunctions:
     def test_print_severity_info_with_issues(self) -> None:
         """Test severity info with various issue types."""
         issues = [
-            self.create_lint_issue(1, "S001"),     # Style
-            self.create_lint_issue(2, "W005"),     # Warning
-            self.create_lint_issue(3, "E002"),     # Error
-            self.create_lint_issue(4, "SEC003"),   # Security
-            self.create_lint_issue(5, "P001"),     # Performance
+            self.create_lint_issue(1, "S001"),  # Style
+            self.create_lint_issue(2, "W005"),  # Warning
+            self.create_lint_issue(3, "E002"),  # Error
+            self.create_lint_issue(4, "SEC003"),  # Security
+            self.create_lint_issue(5, "P001"),  # Performance
         ]
 
         output = self.capture_stdout(print_severity_info, issues)
@@ -205,11 +211,11 @@ class TestOutputFormatting:
     def test_print_detailed_all_severity_levels(self) -> None:
         """Test detailed output includes all severity levels."""
         issues = [
-            self.create_lint_issue(1, "E002"),     # Error
-            self.create_lint_issue(2, "W005"),     # Warning
-            self.create_lint_issue(3, "S001"),     # Style
-            self.create_lint_issue(4, "SEC003"),   # Security
-            self.create_lint_issue(5, "P001"),     # Performance
+            self.create_lint_issue(1, "E002"),  # Error
+            self.create_lint_issue(2, "W005"),  # Warning
+            self.create_lint_issue(3, "S001"),  # Style
+            self.create_lint_issue(4, "SEC003"),  # Security
+            self.create_lint_issue(5, "P001"),  # Performance
         ]
 
         output = self.capture_stdout(print_detailed, issues)
@@ -372,5 +378,7 @@ class TestOutputFormatting:
         output = self.capture_stdout(print_summary, issues)
 
         assert "Total issues: 6" in output
-        assert "Most common issue: 'Inconsistent command capitalization' " \
-               "(S003) - 3 occurrences" in output
+        assert (
+            "Most common issue: 'Inconsistent command capitalization' "
+            "(S003) - 3 occurrences" in output
+        )

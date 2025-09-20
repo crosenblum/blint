@@ -28,7 +28,7 @@ import logging
 from pathlib import Path
 import re
 import sys
-from typing import DefaultDict, Dict, List, Optional, Tuple, Set
+from typing import DefaultDict, Dict, List, Optional, Set, Tuple
 import warnings
 
 __version__ = "1.0.0"
@@ -314,10 +314,12 @@ RULES: Dict[str, Rule] = {
         code="S007",
         name="BAT extension used instead of CMD for newer Windows",
         severity=RuleSeverity.STYLE,
-        explanation="The .cmd file extension is recommended over .bat for Windows NT and newer versions (Windows 2000+). "
-                    "CMD files support additional features and have better error handling in newer Windows environments",
-        recommendation="Consider renaming .bat files to .cmd for scripts intended for Windows 2000 and newer versions. "
-                      "CMD files provide better compatibility with modern Windows features and improved error reporting"
+        explanation="The .cmd file extension is recommended over .bat for Windows NT "
+                    "and newer versions (Windows 2000+). CMD files support additional "
+                    "features and have better error handling in newer Windows environments",
+        recommendation="Consider renaming .bat files to .cmd for scripts intended for "
+                      "Windows 2000 and newer versions. CMD files provide better "
+                      "compatibility with modern Windows features and improved error reporting"
     ),
     "S008": Rule(
         code="S008",
@@ -518,9 +520,8 @@ def read_file_with_encoding(file_path: str) -> Tuple[List[str], str]:
         detected = chardet.detect(raw_data)
         if detected and detected["encoding"] and detected["confidence"] > 0.7:
             detected_encoding = detected["encoding"].lower()
-            logger.debug(f"Chardet detected encoding: {detected_encoding} "
-                        f"(confidence: {detected['confidence']:.2f})")
-            
+            logger.debug("Chardet detected encoding: %s (confidence: %.2f)",
+                        detected_encoding, detected['confidence'])
             # Add detected encoding to the front of our list if it's not already there
             if detected_encoding not in [enc.lower() for enc in encodings_to_try]:
                 encodings_to_try.insert(0, detected_encoding)
@@ -535,24 +536,24 @@ def read_file_with_encoding(file_path: str) -> Tuple[List[str], str]:
         logger.debug("chardet not available, using fallback encoding detection")
     except (OSError, ValueError, TypeError) as detection_error:
         # Any other error in detection, continue with fallback
-        logger.debug(f"Encoding detection failed: {detection_error}, using fallback")
+        logger.debug("Encoding detection failed: %s, using fallback", detection_error)
 
     # Try each encoding until one works
     last_exception: Optional[Exception] = None
     for encoding in encodings_to_try:
         try:
-            logger.debug(f"Attempting to read file with encoding: {encoding}")
+            logger.debug("Attempting to read file with encoding: %s", encoding)
             with open(file_path, "r", encoding=encoding, errors="strict") as file_handle:
                 lines = file_handle.readlines()
-            logger.debug(f"Successfully read {len(lines)} lines using {encoding} encoding")
+            logger.debug("Successfully read %d lines using %s encoding", len(lines), encoding)
             return lines, encoding
         except UnicodeDecodeError as decode_error:
-            logger.debug(f"UnicodeDecodeError with {encoding}: {decode_error}")
+            logger.debug("UnicodeDecodeError with %s: %s", encoding, decode_error)
             last_exception = decode_error
             continue
         except (LookupError, ValueError) as encoding_error:
             # Encoding not supported or invalid
-            logger.debug(f"Encoding error with {encoding}: {encoding_error}")
+            logger.debug("Encoding error with %s: %s", encoding, encoding_error)
             last_exception = encoding_error
             continue
 
@@ -843,7 +844,8 @@ def _check_warning_issues(  # pylint: disable=unused-argument
     return issues
 
 
-def _check_style_issues(line: str, line_num: int, file_lines: List[str], max_line_length: int = 120) -> List[LintIssue]:  # pylint: disable=unused-argument
+def _check_style_issues(line: str, line_num: int, file_lines: List[str],  # pylint: disable=unused-argument
+                       max_line_length: int = 120) -> List[LintIssue]:
     """Check for style level issues."""
     issues: List[LintIssue] = []
     stripped = line.strip()
@@ -1041,7 +1043,7 @@ def _check_undefined_variables(lines: List[str], set_vars: Set[str]) -> List[Lin
     return issues
 
 
-def lint_batch_file(file_path: str, max_line_length: int = 120, 
+def lint_batch_file(file_path: str, max_line_length: int = 120,  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
                     enable_performance_rules: bool = True,
                     enable_style_rules: bool = True) -> List[LintIssue]:
     """
@@ -1082,22 +1084,20 @@ def lint_batch_file(file_path: str, max_line_length: int = 120,
     """
     if not file_path or not isinstance(file_path, str):
         raise ValueError("file_path must be a non-empty string")
-    
-    logger.info(f"Starting lint analysis of file: {file_path}")
-    
+    logger.info("Starting lint analysis of file: %s", file_path)
+
     # Validate file exists and is accessible
     file_obj = Path(file_path)
     if not file_obj.exists():
         raise FileNotFoundError(f"File not found: {file_path}")
     if not file_obj.is_file():
         raise ValueError(f"Path is not a file: {file_path}")
-    
+
     # Check file size for performance warning
     file_size = file_obj.stat().st_size
     if file_size > 10 * 1024 * 1024:  # 10MB
-        logger.warning(f"Large file detected ({file_size // 1024 // 1024}MB). "
-                      f"Processing may take longer.")
-                      
+        logger.warning("Large file detected (%dMB). Processing may take longer.",
+                      file_size // 1024 // 1024)
     # Store original max_line_length for S011 rule
     original_s011_rule = RULES["S011"]
     if max_line_length != 120:
@@ -1156,7 +1156,8 @@ def lint_batch_file(file_path: str, max_line_length: int = 120,
             issues.append(LintIssue(
                 line_number=1,
                 rule=RULES["S007"],
-                context="Consider using .cmd extension instead of .bat for scripts targeting Windows 2000 and newer"
+                context="Consider using .cmd extension instead of .bat for scripts "
+                        "targeting Windows 2000 and newer"
             ))
 
     # Collect labels and check for duplicates
@@ -1204,14 +1205,16 @@ def lint_batch_file(file_path: str, max_line_length: int = 120,
     # Restore original S011 rule if modified
     if max_line_length != 120:
         RULES["S011"] = original_s011_rule
-    
-    logger.info(f"Lint analysis completed. Found {len(issues)} issues across "
-               f"{len([i for i in issues if i.rule.severity == RuleSeverity.ERROR])} error(s), "
-               f"{len([i for i in issues if i.rule.severity == RuleSeverity.WARNING])} warning(s), "
-               f"{len([i for i in issues if i.rule.severity == RuleSeverity.STYLE])} style issue(s), "
-               f"{len([i for i in issues if i.rule.severity == RuleSeverity.SECURITY])} security issue(s), "
-               f"{len([i for i in issues if i.rule.severity == RuleSeverity.PERFORMANCE])} performance issue(s)")
-    
+    logger.info("Lint analysis completed. Found %d issues across %d error(s), "
+               "%d warning(s), %d style issue(s), %d security issue(s), "
+               "%d performance issue(s)",
+               len(issues),
+               len([i for i in issues if i.rule.severity == RuleSeverity.ERROR]),
+               len([i for i in issues if i.rule.severity == RuleSeverity.WARNING]),
+               len([i for i in issues if i.rule.severity == RuleSeverity.STYLE]),
+               len([i for i in issues if i.rule.severity == RuleSeverity.SECURITY]),
+               len([i for i in issues if i.rule.severity == RuleSeverity.PERFORMANCE]))
+
     return issues
 
 

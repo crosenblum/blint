@@ -1,7 +1,8 @@
 """Tests for Rule and LintIssue data classes validation."""
 
 import pytest
-from blint import Rule, RuleSeverity, LintIssue
+
+from blint import LintIssue, Rule, RuleSeverity
 
 
 class TestRuleValidation:
@@ -14,7 +15,7 @@ class TestRuleValidation:
             name="Test Rule",
             severity=RuleSeverity.ERROR,
             explanation="This is a test rule",
-            recommendation="Fix the issue"
+            recommendation="Fix the issue",
         )
         assert rule.code == "E001"
         assert rule.name == "Test Rule"
@@ -30,7 +31,7 @@ class TestRuleValidation:
                 name="Test Rule",
                 severity=RuleSeverity.ERROR,
                 explanation="This is a test rule",
-                recommendation="Fix the issue"
+                recommendation="Fix the issue",
             )
 
     def test_rule_none_code_validation(self) -> None:
@@ -41,7 +42,7 @@ class TestRuleValidation:
                 name="Test Rule",
                 severity=RuleSeverity.ERROR,
                 explanation="This is a test rule",
-                recommendation="Fix the issue"
+                recommendation="Fix the issue",
             )
 
     def test_rule_non_string_code_validation(self) -> None:
@@ -52,7 +53,7 @@ class TestRuleValidation:
                 name="Test Rule",
                 severity=RuleSeverity.ERROR,
                 explanation="This is a test rule",
-                recommendation="Fix the issue"
+                recommendation="Fix the issue",
             )
 
     def test_rule_empty_name_validation(self) -> None:
@@ -63,7 +64,7 @@ class TestRuleValidation:
                 name="",
                 severity=RuleSeverity.ERROR,
                 explanation="This is a test rule",
-                recommendation="Fix the issue"
+                recommendation="Fix the issue",
             )
 
     def test_rule_none_name_validation(self) -> None:
@@ -74,7 +75,7 @@ class TestRuleValidation:
                 name=None,  # type: ignore
                 severity=RuleSeverity.ERROR,
                 explanation="This is a test rule",
-                recommendation="Fix the issue"
+                recommendation="Fix the issue",
             )
 
     def test_rule_non_string_name_validation(self) -> None:
@@ -85,7 +86,7 @@ class TestRuleValidation:
                 name=123,  # type: ignore
                 severity=RuleSeverity.ERROR,
                 explanation="This is a test rule",
-                recommendation="Fix the issue"
+                recommendation="Fix the issue",
             )
 
     def test_rule_invalid_severity_validation(self) -> None:
@@ -96,7 +97,7 @@ class TestRuleValidation:
                 name="Test Rule",
                 severity="invalid",  # type: ignore
                 explanation="This is a test rule",
-                recommendation="Fix the issue"
+                recommendation="Fix the issue",
             )
 
     def test_rule_empty_explanation_validation(self) -> None:
@@ -107,7 +108,7 @@ class TestRuleValidation:
                 name="Test Rule",
                 severity=RuleSeverity.ERROR,
                 explanation="",
-                recommendation="Fix the issue"
+                recommendation="Fix the issue",
             )
 
     def test_rule_none_explanation_validation(self) -> None:
@@ -118,7 +119,7 @@ class TestRuleValidation:
                 name="Test Rule",
                 severity=RuleSeverity.ERROR,
                 explanation=None,  # type: ignore
-                recommendation="Fix the issue"
+                recommendation="Fix the issue",
             )
 
     def test_rule_non_string_explanation_validation(self) -> None:
@@ -129,7 +130,7 @@ class TestRuleValidation:
                 name="Test Rule",
                 severity=RuleSeverity.ERROR,
                 explanation=123,  # type: ignore
-                recommendation="Fix the issue"
+                recommendation="Fix the issue",
             )
 
     def test_rule_empty_recommendation_validation(self) -> None:
@@ -140,7 +141,7 @@ class TestRuleValidation:
                 name="Test Rule",
                 severity=RuleSeverity.ERROR,
                 explanation="This is a test rule",
-                recommendation=""
+                recommendation="",
             )
 
     def test_rule_none_recommendation_validation(self) -> None:
@@ -151,7 +152,7 @@ class TestRuleValidation:
                 name="Test Rule",
                 severity=RuleSeverity.ERROR,
                 explanation="This is a test rule",
-                recommendation=None  # type: ignore
+                recommendation=None,  # type: ignore
             )
 
     def test_rule_non_string_recommendation_validation(self) -> None:
@@ -162,7 +163,7 @@ class TestRuleValidation:
                 name="Test Rule",
                 severity=RuleSeverity.ERROR,
                 explanation="This is a test rule",
-                recommendation=123  # type: ignore
+                recommendation=123,  # type: ignore
             )
 
 
@@ -176,13 +177,9 @@ class TestLintIssueValidation:
             name="Test Rule",
             severity=RuleSeverity.ERROR,
             explanation="This is a test rule",
-            recommendation="Fix the issue"
+            recommendation="Fix the issue",
         )
-        issue = LintIssue(
-            line_number=5,
-            rule=rule,
-            context="Test context"
-        )
+        issue = LintIssue(line_number=5, rule=rule, context="Test context")
         assert issue.line_number == 5
         assert issue.rule == rule
         assert issue.context == "Test context"
@@ -194,12 +191,9 @@ class TestLintIssueValidation:
             name="Test Rule",
             severity=RuleSeverity.ERROR,
             explanation="This is a test rule",
-            recommendation="Fix the issue"
+            recommendation="Fix the issue",
         )
-        issue = LintIssue(
-            line_number=5,
-            rule=rule
-        )
+        issue = LintIssue(line_number=5, rule=rule)
         assert issue.line_number == 5
         assert issue.rule == rule
         assert issue.context == ""
@@ -211,13 +205,10 @@ class TestLintIssueValidation:
             name="Test Rule",
             severity=RuleSeverity.ERROR,
             explanation="This is a test rule",
-            recommendation="Fix the issue"
+            recommendation="Fix the issue",
         )
         with pytest.raises(ValueError, match="Line number must be positive"):
-            LintIssue(
-                line_number=-1,
-                rule=rule
-            )
+            LintIssue(line_number=-1, rule=rule)
 
     def test_lint_issue_zero_line_number_validation(self) -> None:
         """Test LintIssue validation with zero line number."""
@@ -226,26 +217,17 @@ class TestLintIssueValidation:
             name="Test Rule",
             severity=RuleSeverity.ERROR,
             explanation="This is a test rule",
-            recommendation="Fix the issue"
+            recommendation="Fix the issue",
         )
         with pytest.raises(ValueError, match="Line number must be positive"):
-            LintIssue(
-                line_number=0,
-                rule=rule
-            )
+            LintIssue(line_number=0, rule=rule)
 
     def test_lint_issue_invalid_rule_validation(self) -> None:
         """Test LintIssue validation with invalid rule."""
         with pytest.raises(ValueError, match="Rule must be a Rule instance"):
-            LintIssue(
-                line_number=5,
-                rule="invalid"  # type: ignore
-            )
+            LintIssue(line_number=5, rule="invalid")  # type: ignore
 
     def test_lint_issue_none_rule_validation(self) -> None:
         """Test LintIssue validation with None rule."""
         with pytest.raises(ValueError, match="Rule must be a Rule instance"):
-            LintIssue(
-                line_number=5,
-                rule=None  # type: ignore
-            )
+            LintIssue(line_number=5, rule=None)  # type: ignore

@@ -1,20 +1,22 @@
 """Tests for edge cases and missing coverage areas."""
 
-import os
-import tempfile
-import warnings
-from pathlib import Path
-from typing import List
-from unittest.mock import Mock, patch, mock_open
+from unittest.mock import mock_open, patch
 
 import pytest
 
 from blint import (
-    LintIssue, Rule, RuleSeverity, RULES, lint_batch_file, 
-    read_file_with_encoding, _check_syntax_errors, _check_warning_issues,
-    _check_style_issues, _check_security_issues, _check_performance_issues,
-    _check_undefined_variables, _check_unreachable_code, _check_redundant_operations,
-    _check_code_duplication, _collect_labels, _collect_set_variables
+    _check_code_duplication,
+    _check_performance_issues,
+    _check_redundant_operations,
+    _check_security_issues,
+    _check_style_issues,
+    _check_syntax_errors,
+    _check_undefined_variables,
+    _check_unreachable_code,
+    _check_warning_issues,
+    _collect_labels,
+    _collect_set_variables,
+    read_file_with_encoding,
 )
 
 
@@ -23,64 +25,70 @@ class TestFileEncodingEdgeCases:
 
     def test_chardet_oserror_handling(self) -> None:
         """Test handling of OSError during chardet detection."""
-        with patch('builtins.open', mock_open(read_data=b'test content')), \
-             patch('chardet.detect', side_effect=OSError("Test OSError")):
+        with patch("builtins.open", mock_open(read_data=b"test content")), patch(
+            "chardet.detect", side_effect=OSError("Test OSError")
+        ):
             lines, encoding = read_file_with_encoding("test.bat")
-            assert encoding in ['utf-8', 'utf-8-sig', 'latin1', 'cp1252', 'iso-8859-1', 'ascii']
+            assert encoding in ["utf-8", "utf-8-sig", "latin1", "cp1252", "iso-8859-1", "ascii"]
             assert len(lines) > 0
 
     def test_chardet_valueerror_handling(self) -> None:
         """Test handling of ValueError during chardet detection."""
-        with patch('builtins.open', mock_open(read_data=b'test content')), \
-             patch('chardet.detect', side_effect=ValueError("Test ValueError")):
+        with patch("builtins.open", mock_open(read_data=b"test content")), patch(
+            "chardet.detect", side_effect=ValueError("Test ValueError")
+        ):
             lines, encoding = read_file_with_encoding("test.bat")
-            assert encoding in ['utf-8', 'utf-8-sig', 'latin1', 'cp1252', 'iso-8859-1', 'ascii']
+            assert encoding in ["utf-8", "utf-8-sig", "latin1", "cp1252", "iso-8859-1", "ascii"]
             assert len(lines) > 0
 
     def test_chardet_typeerror_handling(self) -> None:
         """Test handling of TypeError during chardet detection."""
-        with patch('builtins.open', mock_open(read_data=b'test content')), \
-             patch('chardet.detect', side_effect=TypeError("Test TypeError")):
+        with patch("builtins.open", mock_open(read_data=b"test content")), patch(
+            "chardet.detect", side_effect=TypeError("Test TypeError")
+        ):
             lines, encoding = read_file_with_encoding("test.bat")
-            assert encoding in ['utf-8', 'utf-8-sig', 'latin1', 'cp1252', 'iso-8859-1', 'ascii']
+            assert encoding in ["utf-8", "utf-8-sig", "latin1", "cp1252", "iso-8859-1", "ascii"]
             assert len(lines) > 0
 
     def test_encoding_lookup_error_fallback(self) -> None:
         """Test handling when encoding lookup fails."""
+
         def mock_open_with_lookup_error(*args, **kwargs):
-            if 'encoding' in kwargs:
+            if "encoding" in kwargs:
                 # Simulate LookupError for unsupported encoding
-                if kwargs['encoding'] == 'utf-8':
+                if kwargs["encoding"] == "utf-8":
                     raise LookupError("Unknown encoding")
             return mock_open(read_data="test content")(*args, **kwargs)
 
-        with patch('builtins.open', side_effect=mock_open_with_lookup_error):
+        with patch("builtins.open", side_effect=mock_open_with_lookup_error):
             lines, encoding = read_file_with_encoding("test.bat")
-            assert encoding != 'utf-8'  # Should fall back to other encoding
+            assert encoding != "utf-8"  # Should fall back to other encoding
             assert len(lines) > 0
 
     def test_encoding_value_error_fallback(self) -> None:
         """Test handling when encoding value is invalid."""
+
         def mock_open_with_value_error(*args, **kwargs):
-            if 'encoding' in kwargs:
+            if "encoding" in kwargs:
                 # Simulate ValueError for invalid encoding
-                if kwargs['encoding'] == 'utf-8':
+                if kwargs["encoding"] == "utf-8":
                     raise ValueError("Invalid encoding")
             return mock_open(read_data="test content")(*args, **kwargs)
 
-        with patch('builtins.open', side_effect=mock_open_with_value_error):
+        with patch("builtins.open", side_effect=mock_open_with_value_error):
             lines, encoding = read_file_with_encoding("test.bat")
-            assert encoding != 'utf-8'  # Should fall back to other encoding
+            assert encoding != "utf-8"  # Should fall back to other encoding
             assert len(lines) > 0
 
     def test_all_encodings_fail_with_exception(self) -> None:
         """Test when all encodings fail and we have a last exception."""
+
         def mock_open_always_fail(*args, **kwargs):
-            if 'encoding' in kwargs:
-                raise UnicodeDecodeError('test', b'', 0, 1, 'test error')
+            if "encoding" in kwargs:
+                raise UnicodeDecodeError("test", b"", 0, 1, "test error")
             return mock_open(read_data="test content")(*args, **kwargs)
 
-        with patch('builtins.open', side_effect=mock_open_always_fail):
+        with patch("builtins.open", side_effect=mock_open_always_fail):
             with pytest.raises(OSError, match="All encoding attempts failed"):
                 read_file_with_encoding("test.bat")
 
@@ -163,7 +171,7 @@ class TestWarningChecking:
     def test_older_windows_commands(self) -> None:
         """Test detection of older Windows commands."""
         set_vars = set()
-        for cmd in ['choice', 'forfiles', 'where', 'robocopy', 'timeout', 'icacls']:
+        for cmd in ["choice", "forfiles", "where", "robocopy", "timeout", "icacls"]:
             issues = _check_warning_issues(f"{cmd} /param", 1, set_vars, False)
             warning_issues = [i for i in issues if i.rule.code == "W009"]
             assert len(warning_issues) == 1
@@ -174,7 +182,7 @@ class TestWarningChecking:
         set_vars = set()
         test_cases = [
             ("reg query HKLM\\SOFTWARE\\Wow6432Node\\Test", "Wow6432Node"),
-            ("copy SysWow64\\file.txt dest", "SysWow64")
+            ("copy SysWow64\\file.txt dest", "SysWow64"),
         ]
         for command, expected_pattern in test_cases:
             issues = _check_warning_issues(command, 1, set_vars, False)
@@ -186,14 +194,14 @@ class TestWarningChecking:
         """Test that Program Files (x86) pattern requires specific format."""
         # The pattern is looking for literal \(x86\) which doesn't match (x86)
         set_vars = set()
-        issues = _check_warning_issues("cd \"Program Files (x86)\"", 1, set_vars, False)
+        issues = _check_warning_issues('cd "Program Files (x86)"', 1, set_vars, False)
         warning_issues = [i for i in issues if i.rule.code == "W010"]
         assert len(warning_issues) == 0  # Won't match because pattern expects \\(x86\\)
 
     def test_unicode_problematic_commands(self) -> None:
         """Test detection of Unicode problematic commands."""
         set_vars = set()
-        for cmd in ['type', 'echo', 'find', 'findstr']:
+        for cmd in ["type", "echo", "find", "findstr"]:
             issues = _check_warning_issues(f"{cmd} filename", 1, set_vars, False)
             warning_issues = [i for i in issues if i.rule.code == "W011"]
             assert len(warning_issues) == 1
@@ -232,7 +240,7 @@ class TestStyleChecking:
 
     def test_command_casing_detection(self) -> None:
         """Test command casing consistency detection."""
-        keywords = ['echo', 'set', 'if', 'for', 'goto', 'call']
+        keywords = ["echo", "set", "if", "for", "goto", "call"]
         for keyword in keywords:
             issues = _check_style_issues(f"{keyword} test", 1, [])
             casing_issues = [i for i in issues if i.rule.code == "S003"]
@@ -265,9 +273,9 @@ class TestSecurityChecking:
         """Test detection of commands requiring admin privileges."""
         admin_commands = [
             ("reg add hklm", "reg add hklm"),
-            ("reg delete hklm", "reg delete hklm"), 
+            ("reg delete hklm", "reg delete hklm"),
             ("sc config", "sc"),
-            ("net user", "net")
+            ("net user", "net"),
         ]
         for cmd, expected in admin_commands:
             issues = _check_security_issues(f"{cmd} something", 1)
@@ -289,7 +297,7 @@ class TestSecurityChecking:
         # r"C:\\temp" looks for "C:\temp" (single backslash in the string)
         test_cases = [
             ("echo test > C:\\temp\\file.txt", "C:\\temp"),  # Won't match - looking for C:\temp
-            ("copy /tmp/file.txt dest", "/tmp")  # Will match
+            ("copy /tmp/file.txt dest", "/tmp"),  # Will match
         ]
         matched_count = 0
         for test_command, expected in test_cases:
@@ -298,13 +306,13 @@ class TestSecurityChecking:
             if expected == "/tmp":
                 assert len(temp_issues) == 1
                 matched_count += 1
-        
+
         # Test the patterns that actually work
         # r"C:\\temp" contains literal "\\" so need double backslashes
         working_cases = [
             "echo C:\\\\temp in path",  # Contains C:\\temp literally (raw string)
-            "echo C:\\\\tmp in path",   # Contains C:\\tmp literally (raw string) 
-            "echo /tmp in path"         # Contains /tmp literally
+            "echo C:\\\\tmp in path",  # Contains C:\\tmp literally (raw string)
+            "echo /tmp in path",  # Contains /tmp literally
         ]
         for cmd in working_cases:
             issues = _check_security_issues(cmd, 1)
@@ -325,7 +333,9 @@ class TestPerformanceChecking:
     def test_enabledelayedexpansion_without_delayed_vars(self) -> None:
         """Test detection of unnecessary ENABLEDELAYEDEXPANSION."""
         lines = ["setlocal enabledelayedexpansion", "echo hello"]
-        issues = _check_performance_issues(lines, 1, "setlocal enabledelayedexpansion", True, True, True, False)
+        issues = _check_performance_issues(
+            lines, 1, "setlocal enabledelayedexpansion", True, True, True, False
+        )
         delayed_issues = [i for i in issues if i.rule.code == "P004"]
         assert len(delayed_issues) == 1
 
@@ -341,14 +351,18 @@ class TestPerformanceChecking:
         temp_patterns = ["temp.txt", "tmp.txt", "temp.log"]
         for pattern in temp_patterns:
             lines = [f"echo test > {pattern}"]
-            issues = _check_performance_issues(lines, 1, f"echo test > {pattern}", False, False, False, False)
+            issues = _check_performance_issues(
+                lines, 1, f"echo test > {pattern}", False, False, False, False
+            )
             temp_issues = [i for i in issues if i.rule.code == "P007"]
             assert len(temp_issues) == 1
 
     def test_temp_file_with_random_no_issue(self) -> None:
         """Test that temp files with random names don't trigger issues."""
         lines = ["echo test > temp_%RANDOM%.txt"]
-        issues = _check_performance_issues(lines, 1, "echo test > temp_%RANDOM%.txt", False, False, False, False)
+        issues = _check_performance_issues(
+            lines, 1, "echo test > temp_%RANDOM%.txt", False, False, False, False
+        )
         temp_issues = [i for i in issues if i.rule.code == "P007"]
         assert len(temp_issues) == 0
 
@@ -366,22 +380,17 @@ class TestGlobalChecks:
     def test_collect_labels_with_duplicates(self) -> None:
         """Test label collection with duplicates."""
         lines = [":label1", "echo test", ":label1", "echo duplicate"]
-        labels, issues = _collect_labels(lines)
+        _, issues = _collect_labels(lines)
         assert len(issues) == 1
         assert issues[0].rule.code == "W013"
         assert "label1" in issues[0].context
 
     def test_collect_set_variables_comprehensive(self) -> None:
         """Test comprehensive variable collection."""
-        lines = [
-            "set VAR1=value1",
-            "set /p VAR2=Enter value:",
-            "set /a VAR3=5+3",
-            "SET UPPER=test"
-        ]
+        lines = ["set VAR1=value1", "set /p VAR2=Enter value:", "set /a VAR3=5+3", "SET UPPER=test"]
         variables = _collect_set_variables(lines)
         assert "VAR1" in variables
-        assert "VAR2" in variables  
+        assert "VAR2" in variables
         assert "VAR3" in variables
         assert "UPPER" in variables
         # Should also include common environment variables
@@ -422,11 +431,7 @@ class TestGlobalChecks:
 
     def test_check_redundant_operations(self) -> None:
         """Test redundant operations detection."""
-        lines = [
-            "if exist file.txt echo found",
-            "echo something",
-            "if exist file.txt del file.txt"
-        ]
+        lines = ["if exist file.txt echo found", "echo something", "if exist file.txt del file.txt"]
         issues = _check_redundant_operations(lines)
         redundant_issues = [i for i in issues if i.rule.code == "P001"]
         assert len(redundant_issues) == 1
@@ -437,10 +442,10 @@ class TestGlobalChecks:
         # Code duplication needs 3+ similar commands AND normalized length > 20
         # "copy FILE FILE" is only 14 chars, so need longer normalized commands
         lines = [
-            "copy verylongfilenamestuff.txt to backup\\verylongfilenamestuff.txt with extra text here",
-            "copy verylongfilenamestuff2.txt to backup\\verylongfilenamestuff2.txt with extra text here",
-            "copy verylongfilenamestuff3.txt to backup\\verylongfilenamestuff3.txt with extra text here",
-            "copy verylongfilenamestuff4.txt to backup\\verylongfilenamestuff4.txt with extra text here"
+            "copy longfile.txt to backup\\longfile.txt with extra text here",
+            "copy longfile2.txt to backup\\longfile2.txt with extra text here", 
+            "copy longfile3.txt to backup\\longfile3.txt with extra text here",
+            "copy longfile4.txt to backup\\longfile4.txt with extra text here",
         ]
         # This should normalize to "copy FILE to FILE with extra text here" which is > 20 chars
         issues = _check_code_duplication(lines)
@@ -451,7 +456,7 @@ class TestGlobalChecks:
         """Test that code duplication requires 3+ similar commands."""
         lines = [
             "copy file1.txt backup\\file1.txt",
-            "copy file2.txt backup\\file2.txt"  # Only 2 similar, should not trigger
+            "copy file2.txt backup\\file2.txt",  # Only 2 similar, should not trigger
         ]
         issues = _check_code_duplication(lines)
         duplication_issues = [i for i in issues if i.rule.code == "P002"]
