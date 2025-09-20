@@ -39,8 +39,6 @@
 
 ### Prerequisites
 - **Python 3.9+** (required)
-- **Windows 10/11** (recommended, but works on older versions)
-- **PowerShell 5.1+** or Command Prompt
 
 ### Quick Install
 
