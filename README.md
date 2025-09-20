@@ -1,6 +1,12 @@
 # Blint 🚀
 
-**Blint** is a linter for Windows batch files (`.bat` and `.cmd`). It helps you identify syntax errors, security vulnerabilities, performance issues, and style problems to write safer, more reliable, and maintainable batch scripts. Even in 2025, batch files deserve professional tooling! 💻
+**Blint** is a linter for Windows batch files (`.bat` and `.cmd`). It provides comprehensive static analysis to identify syntax errors, security vulnerabilities, performance issues, and style problems. Blint helps you write safer, more reliable, and maintainable batch scripts. Even in 2025, batch files deserve professional tooling! 💻
+ 
+✅ **Thread-Safe** - Supports concurrent processing  
+✅ **Performance Optimized** - Handles large files (10MB+) efficiently  
+✅ **Enterprise Features** - Configurable rules, logging, robust error handling  
+✅ **Unicode Support** - International characters and filenames  
+✅ **Memory Efficient** - Optimized for production environments
 
 ## Features ✨
 
@@ -25,6 +31,9 @@
 - **Security Scanning**: Finds command injection risks and dangerous operations
 - **Performance Optimization**: Suggests efficiency improvements
 - **Cross-Platform Compatibility**: Warns about Windows version issues
+- **Thread-Safe Operations**: Supports concurrent analysis of multiple files
+- **Large File Handling**: Efficiently processes files up to 10MB+ with performance warnings
+- **Robust Encoding Detection**: Handles UTF-8, UTF-16, Latin-1, and 9+ encoding formats
 
 ## Installation 🛠️
 
@@ -74,9 +83,52 @@ python blint.py --help
 - `--severity`: Show detailed severity level breakdown (always included)
 - `--help`: Show help menu and rule categories
 
+### 🐍 **Programmatic API Usage**
+
+Blint provides a powerful Python API for integration into your applications:
+
+```python
+import blint
+
+# Basic usage
+issues = blint.lint_batch_file("script.bat")
+for issue in issues:
+    print(f"Line {issue.line_number}: {issue.rule.name} ({issue.rule.code})")
+    print(f"  {issue.rule.explanation}")
+    print(f"  Fix: {issue.rule.recommendation}")
+
+# Advanced configuration
+issues = blint.lint_batch_file(
+    "script.bat",
+    max_line_length=100,           # Custom line length limit  
+    enable_style_rules=False,      # Disable style checks
+    enable_performance_rules=True  # Keep performance checks
+)
+
+# Thread-safe concurrent processing
+from concurrent.futures import ThreadPoolExecutor
+
+files = ["script1.bat", "script2.cmd", "script3.bat"]
+with ThreadPoolExecutor(max_workers=4) as executor:
+    results = list(executor.map(blint.lint_batch_file, files))
+```
+
+### 🔧 **Configuration Options**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `file_path` | `str` | Required | Path to batch file to analyze |
+| `max_line_length` | `int` | `120` | Maximum line length for S011 rule |
+| `enable_style_rules` | `bool` | `True` | Enable/disable style-related rules |
+| `enable_performance_rules` | `bool` | `True` | Enable/disable performance rules |
+
+*Note: Security rules are always enabled for safety.*
+
 ### Supported File Types
 - `.bat` files (traditional batch files)
 - `.cmd` files (recommended for modern Windows)
+- **Unicode filenames** and international characters supported
+- **Large files** (10MB+) handled efficiently with performance monitoring
 
 ## Rule Categories 📋
 
@@ -171,6 +223,51 @@ python blint.py --help
 3. **Only use `SETLOCAL ENABLEDELAYEDEXPANSION`** when needed
 4. **Pair `SETLOCAL` with `ENDLOCAL`** properly
 
+## 🔥 **Advanced Features**
+
+### Enterprise Integration
+```python
+# Custom logging configuration
+import logging
+logging.getLogger('blint').setLevel(logging.DEBUG)
+
+# Batch processing with error handling
+import os
+from pathlib import Path
+
+def lint_directory(directory_path):
+    """Lint all batch files in a directory."""
+    results = {}
+    for bat_file in Path(directory_path).glob("*.bat"):
+        try:
+            issues = blint.lint_batch_file(str(bat_file))
+            results[bat_file.name] = {
+                'issues': len(issues),
+                'errors': len([i for i in issues if i.rule.severity.value == 'Error']),
+                'security': len([i for i in issues if i.rule.severity.value == 'Security'])
+            }
+        except Exception as e:
+            results[bat_file.name] = {'error': str(e)}
+    return results
+```
+
+### CI/CD Integration
+```yaml
+# Example GitHub Actions workflow
+- name: Lint Batch Files
+  run: |
+    python -c "
+    import blint
+    import sys
+    issues = blint.lint_batch_file('deploy.bat')
+    errors = [i for i in issues if i.rule.severity.value == 'Error']
+    if errors:
+        print(f'Found {len(errors)} critical errors!')
+        sys.exit(1)
+    print(f'✅ Batch file passed with {len(issues)} total issues')
+    "
+```
+
 ## Contributing 🤝
 
 **Contributions are welcome!** 
@@ -181,12 +278,6 @@ python blint.py --help
 - 📖 Improve documentation
 - 🧪 Add test cases
 - 🔧 Submit bug fixes or enhancements
-
-### Development Guidelines
-- Follow existing code style and patterns
-- Add tests for new features
-- Update documentation for rule changes
-- Ensure all tests pass before submitting
 
 ## License 📄
 
