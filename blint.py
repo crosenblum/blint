@@ -1202,7 +1202,15 @@ def print_summary(issues: List[LintIssue]) -> None:
     for issue in issues:
         rule_counts[issue.rule.code] += 1
 
-    most_common_rule = max(rule_counts.items(), key=lambda x: x[1]) if rule_counts else ("", 0)
+    most_common_rule: Tuple[str, int] = ("", 0)
+    if rule_counts:
+        max_count = 0
+        max_rule = ""
+        for rule_code, count in rule_counts.items():
+            if count > max_count:
+                max_count = count
+                max_rule = rule_code
+        most_common_rule = (max_rule, max_count)
 
     # Count by severity
     severity_counts: DefaultDict[RuleSeverity, int] = defaultdict(int)
@@ -1273,7 +1281,13 @@ def print_detailed(issues: List[LintIssue]) -> None:
             # Add context if available
             contexts = [issue.context for issue in rule_issues if issue.context]
             if contexts:
-                unique_contexts = list(dict.fromkeys(contexts))  # Remove duplicates
+                # Remove duplicates while preserving order
+                unique_contexts: List[str] = []
+                seen: Set[str] = set()
+                for context in contexts:
+                    if context not in seen:
+                        unique_contexts.append(context)
+                        seen.add(context)
                 for context in unique_contexts:
                     print(f"- Context: {context}")
 
