@@ -1,4 +1,4 @@
-﻿"""Tests for output and utility functions."""
+"""Tests for output and utility functions."""
 
 from collections import defaultdict
 import io
@@ -135,7 +135,7 @@ class TestPrintFunctions:
         output = self.capture_stdout(print_detailed, issues)
 
         assert "DETAILED ISSUES:" in output
-        assert "No issues found! ✨" in output
+        assert "No issues found! ?" in output
 
     def test_print_detailed_with_issues(self) -> None:
         """Test detailed output with issues."""
@@ -372,4 +372,5 @@ class TestOutputFormatting:
         output = self.capture_stdout(print_summary, issues)
 
         assert "Total issues: 6" in output
-        assert "Most common issue: 'Inconsistent command capitalization' (S003) - 3 occurrences" in output
+        assert "Most common issue: 'Inconsistent command capitalization' " \
+               "(S003) - 3 occurrences" in output

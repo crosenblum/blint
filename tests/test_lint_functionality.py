@@ -1,10 +1,10 @@
-﻿"""Tests for the main batch file linting functionality."""
+"""Tests for the main batch file linting functionality."""
 
 import os
 import re
 import tempfile
 
-from blint import DANGEROUS_COMMANDS, lint_batch_file, RULES, RuleSeverity, LintIssue
+from blint import DANGEROUS_COMMANDS, lint_batch_file, RULES, RuleSeverity
 
 
 class TestLintBatchFile:
@@ -132,7 +132,6 @@ if "%var%" echo This is missing ==
         temp_file = self.create_temp_batch_file(content)
         try:
             issues = lint_batch_file(temp_file)
-            rule_codes = [issue.rule.code for issue in issues]
             # The last line should trigger E003 for improper IF formatting
             contexts = [issue.context for issue in issues if issue.rule.code == "E003"]
             assert len(contexts) >= 0  # May or may not catch this heuristic case
@@ -242,7 +241,7 @@ for /l %%j in (1,1,5) do echo %%j
     def test_trailing_whitespace(self) -> None:
         """Test detection of trailing whitespace."""
         content = """@echo off
-echo This line has trailing spaces   
+echo This line has trailing spaces
 echo This line is clean
 """
         temp_file = self.create_temp_batch_file(content)
@@ -362,7 +361,7 @@ echo Process finished
             # This should be a well-formed script with minimal critical issues
             # Filter out any style-only issues
             critical_issues = [
-                issue for issue in issues 
+                issue for issue in issues
                 if issue.rule.severity in [RuleSeverity.ERROR, RuleSeverity.WARNING]
             ]
             # Allow for issues that the linter correctly identifies
@@ -413,39 +412,49 @@ class TestRuleSystem:
             assert isinstance(rule.name, str), f"Rule {rule_code} has invalid name"
             assert isinstance(rule.severity, RuleSeverity), f"Rule {rule_code} has invalid severity"
             assert isinstance(rule.explanation, str), f"Rule {rule_code} has invalid explanation"
-            assert isinstance(rule.recommendation, str), f"Rule {rule_code} has invalid recommendation"
+            assert isinstance(rule.recommendation, str), \
+                   f"Rule {rule_code} has invalid recommendation"
             assert len(rule.explanation) > 0, f"Rule {rule_code} has empty explanation"
-            assert len(rule.recommendation) > 0, f"Rule {rule_code} has empty recommendation"
-            assert rule.code == rule_code, f"Rule code mismatch: {rule.code} != {rule_code}"
+            assert len(rule.recommendation) > 0, \
+                   f"Rule {rule_code} has empty recommendation"
+            assert rule.code == rule_code, \
+                   f"Rule code mismatch: {rule.code} != {rule_code}"
 
     def test_rule_code_categories(self) -> None:
         """Test that rule codes follow the proper categorization."""
-        error_codes = [code for code in RULES.keys() if code.startswith("E")]
-        warning_codes = [code for code in RULES.keys() if code.startswith("W")]
-        security_codes = [code for code in RULES.keys() if code.startswith("SEC")]
+        error_codes = [code for code in RULES if code.startswith("E")]
+        warning_codes = [code for code in RULES if code.startswith("W")]
+        security_codes = [code for code in RULES if code.startswith("SEC")]
         # Style codes start with S but not SEC
-        style_codes = [code for code in RULES.keys() if code.startswith("S") and not code.startswith("SEC")]
-        performance_codes = [code for code in RULES.keys() if code.startswith("P")]
-        
+        style_codes = [code for code in RULES
+                       if code.startswith("S") and not code.startswith("SEC")]
+        performance_codes = [code for code in RULES
+                             if code.startswith("P")]
+
         # Check that Error codes have Error severity
         for code in error_codes:
-            assert RULES[code].severity == RuleSeverity.ERROR, f"Rule {code} should have Error severity"
-        
+            assert RULES[code].severity == RuleSeverity.ERROR, \
+                   f"Rule {code} should have Error severity"
+
         # Check that Warning codes have Warning severity
         for code in warning_codes:
-            assert RULES[code].severity == RuleSeverity.WARNING, f"Rule {code} should have Warning severity"
-        
+            assert RULES[code].severity == RuleSeverity.WARNING, \
+                   f"Rule {code} should have Warning severity"
+
         # Check that Style codes have Style severity
         for code in style_codes:
-            assert RULES[code].severity == RuleSeverity.STYLE, f"Rule {code} should have Style severity"
-        
+            assert RULES[code].severity == RuleSeverity.STYLE, \
+                   f"Rule {code} should have Style severity"
+
         # Check that Security codes have Security severity
         for code in security_codes:
-            assert RULES[code].severity == RuleSeverity.SECURITY, f"Rule {code} should have Security severity"
-            
+            assert RULES[code].severity == RuleSeverity.SECURITY, \
+                   f"Rule {code} should have Security severity"
+
         # Check that Performance codes have Performance severity
         for code in performance_codes:
-            assert RULES[code].severity == RuleSeverity.PERFORMANCE, f"Rule {code} should have Performance severity"
+            assert RULES[code].severity == RuleSeverity.PERFORMANCE, \
+                   f"Rule {code} should have Performance severity"
 
     def test_properly_quoted_set_commands_no_issues(self) -> None:
         """Test that properly quoted set commands don't trigger unsafe usage warnings."""
@@ -493,7 +502,7 @@ echo Done
             assert hasattr(rule, 'recommendation')
 
         # Test RuleSeverity enum
-        valid_severities = {RuleSeverity.ERROR, RuleSeverity.WARNING, RuleSeverity.STYLE, 
+        valid_severities = {RuleSeverity.ERROR, RuleSeverity.WARNING, RuleSeverity.STYLE,
                           RuleSeverity.SECURITY, RuleSeverity.PERFORMANCE}
         for rule in RULES.values():
             assert rule.severity in valid_severities
@@ -544,7 +553,7 @@ echo %input_var%
             # Should detect undefined variable usage (E006)
             assert "E006" in rule_codes
 
-            # Should detect unquoted variable usage (W005) 
+            # Should detect unquoted variable usage (W005)
             assert "W005" in rule_codes
         finally:
             os.unlink(temp_file)
@@ -610,7 +619,7 @@ echo Escaped ^> character
                 assert compiled_pattern.search(
                     example
                 ), f"Pattern '{pattern}' should match '{example}'"
-                
+
                 # Test that our linter detects these
                 content = f"@echo off\n{example}\n"
                 temp_file = self.create_temp_batch_file(content)

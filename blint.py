@@ -1,8 +1,9 @@
-﻿"""Blint - A lightweight batch file linter for Windows.
+"""Blint - A lightweight batch file linter for Windows.
 
 This module provides functionality to lint Windows batch files (.bat and .cmd)
 for common syntax errors, style issues, and potential pitfalls.
 """
+# pylint: disable=too-many-lines
 
 from collections import defaultdict
 from dataclasses import dataclass
@@ -19,7 +20,7 @@ __version__ = "1.0.0"
 class RuleSeverity(Enum):
     """Rule severity levels."""
     ERROR = "Error"
-    WARNING = "Warning" 
+    WARNING = "Warning"
     STYLE = "Style"
     SECURITY = "Security"
     PERFORMANCE = "Performance"
@@ -33,7 +34,6 @@ class Rule:
     severity: RuleSeverity
     explanation: str
     recommendation: str
-    
     def __post_init__(self) -> None:
         """Validate rule after initialization."""
         if not self.code or not isinstance(self.code, str):
@@ -54,7 +54,6 @@ class LintIssue:
     line_number: int
     rule: Rule
     context: str = ""  # Additional context about the issue
-    
     def __post_init__(self) -> None:
         """Validate issue after initialization."""
         if self.line_number < 1:
@@ -70,50 +69,63 @@ RULES: Dict[str, Rule] = {
         code="E001",
         name="Nested parentheses mismatch",
         severity=RuleSeverity.ERROR,
-        explanation="Batch scripts have improper nesting or mismatched parentheses which will cause syntax errors",
-        recommendation="Ensure all opening parentheses have matching closing parentheses and are properly nested"
+        explanation="Batch scripts have improper nesting or mismatched "
+                    "parentheses which will cause syntax errors",
+        recommendation="Ensure all opening parentheses have matching "
+                      "closing parentheses and are properly nested"
     ),
     "E002": Rule(
         code="E002",
         name="Missing label for GOTO statement",
         severity=RuleSeverity.ERROR,
-        explanation="GOTO statement points to a label that does not exist, which will cause runtime errors",
-        recommendation="Create the missing label or correct the GOTO statement to point to an existing label"
+        explanation="GOTO statement points to a label that does not exist, "
+                    "which will cause runtime errors",
+        recommendation="Create the missing label or correct the GOTO "
+                      "statement to point to an existing label"
     ),
     "E003": Rule(
         code="E003",
         name="IF statement improper formatting",
         severity=RuleSeverity.ERROR,
-        explanation="IF statement has improper spacing or syntax that will prevent correct execution",
+        explanation="IF statement has improper spacing or syntax that "
+                    "will prevent correct execution",
         recommendation="Use proper spacing: IF \"condition\" operator \"value\" command"
     ),
     "E004": Rule(
         code="E004",
         name="IF EXIST syntax mixing",
         severity=RuleSeverity.ERROR,
-        explanation="Mixing IF EXIST syntax with comparison operators creates invalid syntax",
-        recommendation="Use either 'IF EXIST filename' or 'IF \"variable\"==\"value\"' but not both together"
+        explanation="Mixing IF EXIST syntax with comparison operators "
+                    "creates invalid syntax",
+        recommendation="Use either 'IF EXIST filename' or "
+                      "'IF \"variable\"==\"value\"' but not both together"
     ),
     "E005": Rule(
         code="E005",
         name="Invalid path syntax",
         severity=RuleSeverity.ERROR,
-        explanation="Path contains invalid characters or exceeds system length limits",
-        recommendation="Remove invalid characters (<>|\"*?) and ensure path length is under 260 characters"
+        explanation="Path contains invalid characters or exceeds "
+                    "system length limits",
+        recommendation="Remove invalid characters (<>|\"*?) and ensure "
+                      "path length is under 260 characters"
     ),
     "E006": Rule(
         code="E006",
         name="Undefined variable reference",
         severity=RuleSeverity.ERROR,
-        explanation="Script references variables that were never set, which may cause runtime errors",
-        recommendation="Define the variable using SET before referencing it, or add existence checks"
+        explanation="Script references variables that were never set, "
+                    "which may cause runtime errors",
+        recommendation="Define the variable using SET before referencing it, "
+                      "or add existence checks"
     ),
     "E007": Rule(
         code="E007",
         name="Empty variable check syntax error",
         severity=RuleSeverity.ERROR,
-        explanation="Incorrect syntax for checking if variables are empty will cause comparison errors",
-        recommendation="Use proper syntax: IF \"%%VAR%%\"==\"\" for empty variable checks"
+        explanation="Incorrect syntax for checking if variables are empty "
+                    "will cause comparison errors",
+        recommendation="Use proper syntax: IF \"%%VAR%%\"==\"\" for "
+                      "empty variable checks"
     ),
     "E008": Rule(
         code="E008",
@@ -136,8 +148,8 @@ RULES: Dict[str, Rule] = {
         explanation="FOR loops must contain the DO keyword for proper execution",
         recommendation="Add DO keyword: FOR %%i IN (items) DO command"
     ),
-    
-    # Warning Level Rules (W001-W999) 
+
+    # Warning Level Rules (W001-W999)
     "W001": Rule(
         code="W001",
         name="Missing exit code",
@@ -229,20 +241,22 @@ RULES: Dict[str, Rule] = {
         explanation="Multiple labels with the same name can cause unpredictable GOTO behavior",
         recommendation="Rename duplicate labels to have unique names"
     ),
-    
+
     # Style Level Rules (S001-S999)
     "S001": Rule(
         code="S001",
         name="Missing @ECHO OFF at file start",
         severity=RuleSeverity.STYLE,
-        explanation="Batch scripts usually start with @ECHO OFF to prevent command echoing during execution",
+        explanation="Batch scripts usually start with @ECHO OFF to prevent "
+                    "command echoing during execution",
         recommendation="Add '@ECHO OFF' as the first line of your script"
     ),
     "S002": Rule(
         code="S002",
         name="ECHO OFF without @ prefix",
         severity=RuleSeverity.STYLE,
-        explanation="ECHO OFF should use @ prefix to prevent the command itself from being displayed",
+        explanation="ECHO OFF should use @ prefix to prevent the command "
+                    "itself from being displayed",
         recommendation="Use '@ECHO OFF' instead of 'ECHO OFF'"
     ),
     "S003": Rule(
@@ -308,13 +322,14 @@ RULES: Dict[str, Rule] = {
         explanation="Lines longer than 120 characters are hard to read and maintain",
         recommendation="Break long lines into multiple shorter lines for better readability"
     ),
-    
+
     # Security Level Rules (SEC001-SEC999)
     "SEC001": Rule(
         code="SEC001",
         name="Potential command injection vulnerability",
         severity=RuleSeverity.SECURITY,
-        explanation="User input used in commands without validation could allow malicious code execution",
+        explanation="User input used in commands without validation could "
+                    "allow malicious code execution",
         recommendation="Validate and sanitize all user input before using in commands"
     ),
     "SEC002": Rule(
@@ -328,15 +343,18 @@ RULES: Dict[str, Rule] = {
         code="SEC003",
         name="Dangerous command without confirmation",
         severity=RuleSeverity.SECURITY,
-        explanation="Destructive commands should require user confirmation to prevent accidental execution",
+        explanation="Destructive commands should require user confirmation "
+                    "to prevent accidental execution",
         recommendation="Add confirmation prompts before destructive operations"
     ),
     "SEC004": Rule(
         code="SEC004",
         name="Dangerous registry operation",
         severity=RuleSeverity.SECURITY,
-        explanation="Registry modifications can damage system functionality and should be carefully reviewed",
-        recommendation="Backup registry before modifications and use specific keys rather than broad deletions"
+        explanation="Registry modifications can damage system functionality "
+                    "and should be carefully reviewed",
+        recommendation="Backup registry before modifications and use specific "
+                      "keys rather than broad deletions"
     ),
     "SEC005": Rule(
         code="SEC005",
@@ -359,7 +377,7 @@ RULES: Dict[str, Rule] = {
         explanation="Hardcoded temp paths may not exist and could create security vulnerabilities",
         recommendation="Use %%TEMP%% environment variable instead of hardcoded temporary paths"
     ),
-    
+
     # Performance Level Rules (P001-P999)
     "P001": Rule(
         code="P001",
@@ -372,7 +390,8 @@ RULES: Dict[str, Rule] = {
         code="P002",
         name="Code duplication detected",
         severity=RuleSeverity.PERFORMANCE,
-        explanation="Repeated code blocks should be refactored into subroutines for better maintainability",
+        explanation="Repeated code blocks should be refactored into "
+                    "subroutines for better maintainability",
         recommendation="Create subroutines using CALL :function_name for repeated code"
     ),
     "P003": Rule(
@@ -414,7 +433,8 @@ RULES: Dict[str, Rule] = {
         code="P008",
         name="Delayed expansion without enablement",
         severity=RuleSeverity.PERFORMANCE,
-        explanation="Using !VARIABLES! requires SETLOCAL ENABLEDELAYEDEXPANSION for proper functionality",
+        explanation="Using !VARIABLES! requires SETLOCAL "
+                    "ENABLEDELAYEDEXPANSION for proper functionality",
         recommendation="Add SETLOCAL ENABLEDELAYEDEXPANSION before using !variable! syntax"
     ),
 }
@@ -612,14 +632,14 @@ def _collect_set_variables(lines: List[str]) -> Set[str]:
             r"set\s+/p\s+([A-Za-z0-9_]+)=",  # Set with prompt
             r"set\s+/a\s+([A-Za-z0-9_]+)=",  # Arithmetic set
         ]
-        
+
         for pattern in patterns:
             set_match = re.match(pattern, line.strip(), re.IGNORECASE)
             if set_match:
                 var_name_text: str = set_match.group(1)
                 set_vars.add(var_name_text.upper())
                 break
-    
+
     # Add common environment variables that are typically available
     common_env_vars = {
         'PATH', 'TEMP', 'TMP', 'USERPROFILE', 'USERNAME', 'COMPUTERNAME',
@@ -631,7 +651,7 @@ def _collect_set_variables(lines: List[str]) -> Set[str]:
         'PROGRAMDATA', 'PUBLIC'
     }
     set_vars.update(common_env_vars)
-    
+
     return set_vars
 
 
@@ -656,7 +676,8 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
 
     # E003: IF statement improper formatting
     if_match = re.match(r"if\s+[^=]+$", stripped, re.IGNORECASE)
-    if if_match and "exist" not in stripped.lower() and "defined" not in stripped.lower() and "==" not in stripped:
+    if (if_match and "exist" not in stripped.lower() and
+            "defined" not in stripped.lower() and "==" not in stripped):
         issues.append(LintIssue(
             line_number=line_num,
             rule=RULES["E003"],
@@ -701,7 +722,9 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
     return issues
 
 
-def _check_warning_issues(line: str, line_num: int, set_vars: Set[str], delayed_expansion_enabled: bool) -> List[LintIssue]:
+def _check_warning_issues(  # pylint: disable=unused-argument
+        line: str, line_num: int, set_vars: Set[str],
+        delayed_expansion_enabled: bool) -> List[LintIssue]:
     """Check for warning level issues."""
     issues: List[LintIssue] = []
     stripped = line.strip()
@@ -774,11 +797,11 @@ def _check_warning_issues(line: str, line_num: int, set_vars: Set[str], delayed_
     return issues
 
 
-def _check_style_issues(line: str, line_num: int, file_lines: List[str]) -> List[LintIssue]:
+def _check_style_issues(line: str, line_num: int, file_lines: List[str]) -> List[LintIssue]:  # pylint: disable=unused-argument
     """Check for style level issues."""
     issues: List[LintIssue] = []
     stripped = line.strip()
-    
+
     # S003: Inconsistent command capitalization
     for keyword in COMMAND_CASING_KEYWORDS:
         pattern = rf"\b{keyword}\b"
@@ -860,7 +883,7 @@ def _check_security_issues(line: str, line_num: int) -> List[LintIssue]:
             break
 
     # SEC004: Dangerous registry operation (covered by patterns above)
-    
+
     # SEC005: Missing privilege check for admin operations
     admin_commands = ["reg add hklm", "reg delete hklm", "sc ", "net "]
     for cmd in admin_commands:
@@ -897,9 +920,10 @@ def _check_security_issues(line: str, line_num: int) -> List[LintIssue]:
     return issues
 
 
-def _check_performance_issues(lines: List[str], line_num: int, line: str, 
-                              has_setlocal: bool, has_set_commands: bool, 
-                              has_delayed_expansion: bool, uses_delayed_vars: bool) -> List[LintIssue]:
+def _check_performance_issues(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+        lines: List[str], line_num: int, line: str,  # pylint: disable=unused-argument
+        has_setlocal: bool, has_set_commands: bool,
+        has_delayed_expansion: bool, uses_delayed_vars: bool) -> List[LintIssue]:
     """Check for performance level issues."""
     issues: List[LintIssue] = []
     stripped = line.strip()
@@ -996,7 +1020,7 @@ def lint_batch_file(file_path: str) -> List[LintIssue]:
         )
 
     issues: List[LintIssue] = []
-    
+
     if not lines:
         return issues  # Empty file, no issues
 
@@ -1007,7 +1031,7 @@ def lint_batch_file(file_path: str) -> List[LintIssue]:
         re.search(r"setlocal\s+enabledelayedexpansion", line, re.IGNORECASE) for line in lines
     )
     uses_delayed_vars = any(re.search(r"![A-Z0-9_]+!", line, re.IGNORECASE) for line in lines)
-    
+
     # S001: Missing @ECHO OFF at file start
     if not lines[0].strip().lower().startswith("@echo off"):
         issues.append(LintIssue(
@@ -1015,7 +1039,7 @@ def lint_batch_file(file_path: str) -> List[LintIssue]:
             rule=RULES["S001"],
             context="Script should start with @ECHO OFF"
         ))
-    
+
     # S002: ECHO OFF without @ prefix
     first_line = lines[0].strip().lower()
     if first_line.startswith("echo off") and not first_line.startswith("@echo off"):
@@ -1044,30 +1068,30 @@ def lint_batch_file(file_path: str) -> List[LintIssue]:
     for i, line in enumerate(lines, start=1):
         # Error level checks
         issues.extend(_check_syntax_errors(line, i, labels))
-        
+
         # Warning level checks
         issues.extend(_check_warning_issues(line, i, set_vars, has_delayed_expansion))
-        
+
         # Style level checks
         issues.extend(_check_style_issues(line, i, lines))
-        
+
         # Security level checks
         issues.extend(_check_security_issues(line, i))
-        
+
         # Performance level checks
-        issues.extend(_check_performance_issues(lines, i, line, has_setlocal, 
-                                              has_set_commands, has_delayed_expansion, 
+        issues.extend(_check_performance_issues(lines, i, line, has_setlocal,
+                                              has_set_commands, has_delayed_expansion,
                                               uses_delayed_vars))
 
     # Global checks (across all lines)
     issues.extend(_check_undefined_variables(lines, set_vars))
-    
+
     # Check for unreachable code (E008)
     issues.extend(_check_unreachable_code(lines))
-    
+
     # Check for redundant operations (P001)
     issues.extend(_check_redundant_operations(lines))
-    
+
     # Check for code duplication (P002)
     issues.extend(_check_code_duplication(lines))
 
@@ -1077,7 +1101,7 @@ def lint_batch_file(file_path: str) -> List[LintIssue]:
 def _check_unreachable_code(lines: List[str]) -> List[LintIssue]:
     """Check for unreachable code after EXIT or GOTO statements."""
     issues: List[LintIssue] = []
-    
+
     for i, line in enumerate(lines):
         stripped = line.strip().lower()
         if re.match(r"(exit\s|goto\s)", stripped):
@@ -1088,17 +1112,18 @@ def _check_unreachable_code(lines: List[str]) -> List[LintIssue]:
                     issues.append(LintIssue(
                         line_number=j + 1,
                         rule=RULES["E008"],
-                        context=f"Code after {stripped.split()[0].upper()} on line {i + 1} will never execute"
+                        context=f"Code after {stripped.split()[0].upper()} on "
+                                f"line {i + 1} will never execute"
                     ))
                     break
-    
+
     return issues
 
 
 def _check_redundant_operations(lines: List[str]) -> List[LintIssue]:
     """Check for redundant file operations."""
     issues: List[LintIssue] = []
-    
+
     for i, line in enumerate(lines):
         stripped = line.strip().lower()
         # Look for repeated IF EXIST checks on the same file
@@ -1112,31 +1137,32 @@ def _check_redundant_operations(lines: List[str]) -> List[LintIssue]:
                     issues.append(LintIssue(
                         line_number=j + 1,
                         rule=RULES["P001"],
-                        context=f"Redundant existence check for {filename} (first check on line {i + 1})"
+                        context=f"Redundant existence check for {filename} "
+                                f"(first check on line {i + 1})"
                     ))
                     break
-    
+
     return issues
 
 
 def _check_code_duplication(lines: List[str]) -> List[LintIssue]:
     """Check for code duplication that could be refactored."""
     issues: List[LintIssue] = []
-    
+
     # Simple heuristic: look for repeated command patterns
     command_blocks: Dict[str, List[int]] = defaultdict(list)
-    
+
     for i, line in enumerate(lines):
         stripped = line.strip().lower()
         if stripped and not stripped.startswith(":") and not stripped.startswith("rem"):
             # Normalize the command for comparison
             normalized = re.sub(r"\S+\.(txt|log|bat|cmd)", "FILE", stripped)
             normalized = re.sub(r"%\w+%", "VAR", normalized)
-            
+
             if len(normalized) > 20:  # Only consider substantial commands
                 command_blocks[normalized].append(i + 1)
-    
-    for normalized_cmd, line_numbers in command_blocks.items():
+
+    for _normalized_cmd, line_numbers in command_blocks.items():
         if len(line_numbers) > 2:  # Found 3+ similar commands
             for line_num in line_numbers[1:]:  # Flag all but the first
                 issues.append(LintIssue(
@@ -1144,7 +1170,7 @@ def _check_code_duplication(lines: List[str]) -> List[LintIssue]:
                     rule=RULES["P002"],
                     context=f"Similar command pattern repeated (also on lines {line_numbers[0]})"
                 ))
-    
+
     return issues
 
 
@@ -1170,14 +1196,14 @@ def print_summary(issues: List[LintIssue]) -> None:
         issues: List of LintIssue objects
     """
     total_issues = len(issues)
-    
+
     # Group by rule for most common error
     rule_counts: DefaultDict[str, int] = defaultdict(int)
     for issue in issues:
         rule_counts[issue.rule.code] += 1
-    
+
     most_common_rule = max(rule_counts.items(), key=lambda x: x[1]) if rule_counts else ("", 0)
-    
+
     # Count by severity
     severity_counts: DefaultDict[RuleSeverity, int] = defaultdict(int)
     for issue in issues:
@@ -1187,12 +1213,13 @@ def print_summary(issues: List[LintIssue]) -> None:
     print(f"Total issues: {total_issues}")
     if most_common_rule[0]:
         most_common_rule_obj = RULES[most_common_rule[0]]
-        print(f"Most common issue: '{most_common_rule_obj.name}' ({most_common_rule[0]}) - {most_common_rule[1]} occurrences")
+        print(f"Most common issue: '{most_common_rule_obj.name}' "
+              f"({most_common_rule[0]}) - {most_common_rule[1]} occurrences")
     else:
         print("No issues found")
-    
+
     print("\nIssues by severity:")
-    severity_order = [RuleSeverity.ERROR, RuleSeverity.WARNING, RuleSeverity.STYLE, 
+    severity_order = [RuleSeverity.ERROR, RuleSeverity.WARNING, RuleSeverity.STYLE,
                      RuleSeverity.SECURITY, RuleSeverity.PERFORMANCE]
     for severity in severity_order:
         count = severity_counts.get(severity, 0)
@@ -1209,47 +1236,47 @@ def print_detailed(issues: List[LintIssue]) -> None:
     if not issues:
         print("\nDETAILED ISSUES:")
         print("----------------")
-        print("No issues found! ✨\n")
+        print("No issues found! ?\n")
         return
-        
+
     # Group by severity
     grouped = group_issues(issues)
-    
+
     print("\nDETAILED ISSUES:")
     print("----------------")
-    
-    severity_order = [RuleSeverity.ERROR, RuleSeverity.WARNING, RuleSeverity.STYLE, 
+
+    severity_order = [RuleSeverity.ERROR, RuleSeverity.WARNING, RuleSeverity.STYLE,
                      RuleSeverity.SECURITY, RuleSeverity.PERFORMANCE]
-    
+
     for severity in severity_order:
         if severity not in grouped:
             continue
-            
+
         severity_issues = grouped[severity]
         print(f"\n{severity.value.upper()} LEVEL ISSUES:")
         print("=" * (len(severity.value) + 14))
-        
+
         # Group by rule within severity
         rule_groups: DefaultDict[str, List[LintIssue]] = defaultdict(list)
         for issue in severity_issues:
             rule_groups[issue.rule.code].append(issue)
-        
+
         for rule_code in sorted(rule_groups.keys()):
             rule_issues = rule_groups[rule_code]
             rule = rule_issues[0].rule
             line_numbers = sorted([issue.line_number for issue in rule_issues])
-            
+
             print(f"\nLine {', '.join(map(str, line_numbers))}: {rule.name} ({rule_code})")
             print(f"- Explanation: {rule.explanation}")
             print(f"- Recommendation: {rule.recommendation}")
-            
+
             # Add context if available
             contexts = [issue.context for issue in rule_issues if issue.context]
             if contexts:
-                unique_contexts = list(dict.fromkeys(contexts))  # Remove duplicates while preserving order
+                unique_contexts = list(dict.fromkeys(contexts))  # Remove duplicates
                 for context in unique_contexts:
                     print(f"- Context: {context}")
-        
+
         print()  # Extra spacing between severity levels
 
 
@@ -1273,10 +1300,10 @@ def print_severity_info(issues: List[LintIssue]) -> None:
 
     print("\nSEVERITY BREAKDOWN:")
     print("====================")
-    
-    severity_order = [RuleSeverity.ERROR, RuleSeverity.WARNING, RuleSeverity.STYLE, 
+
+    severity_order = [RuleSeverity.ERROR, RuleSeverity.WARNING, RuleSeverity.STYLE,
                      RuleSeverity.SECURITY, RuleSeverity.PERFORMANCE]
-    
+
     for severity in severity_order:
         count = severity_counts.get(severity, 0)
         if count == 0:
@@ -1286,7 +1313,7 @@ def print_severity_info(issues: List[LintIssue]) -> None:
         print(f"  {descriptions.get(severity, 'No description available.')}")
 
 
-def main() -> None:
+def main() -> None:  # pylint: disable=too-many-branches
     """Main entry point for the blint application."""
     if len(sys.argv) < 2 or "--help" in sys.argv:
         print_help()
@@ -1330,26 +1357,28 @@ def main() -> None:
         return
 
     # Display results in new format
-    print(f"\n🔍 Batch File Analysis: {batch_file}")
+    print(f"\n?? Batch File Analysis: {batch_file}")
     print("=" * (25 + len(batch_file)))
-    
+
     print_detailed(issues)
 
     if show_summary:
         print_summary(issues)
 
     print_severity_info(issues)
-    
+
     # Exit with appropriate code
     error_count = sum(1 for issue in issues if issue.rule.severity == RuleSeverity.ERROR)
     if error_count > 0:
-        print(f"\n⚠️  Found {error_count} critical error{'s' if error_count != 1 else ''} that must be fixed.")
+        print(f"\n??  Found {error_count} critical "
+              f"error{'s' if error_count != 1 else ''} that must be fixed.")
         sys.exit(1)
     elif issues:
-        print(f"\n✅ No critical errors found, but {len(issues)} issue{'s' if len(issues) != 1 else ''} detected.")
+        print(f"\n? No critical errors found, but {len(issues)} "
+              f"issue{'s' if len(issues) != 1 else ''} detected.")
         sys.exit(0)
     else:
-        print("\n🎉 No issues found! Your batch file looks great!")
+        print("\n?? No issues found! Your batch file looks great!")
         sys.exit(0)
 
 

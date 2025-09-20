@@ -84,7 +84,7 @@ python blint.py --help
 **Critical issues that will cause script failure**
 
 - **E001**: Nested parentheses mismatch
-- **E002**: Missing label for GOTO statement  
+- **E002**: Missing label for GOTO statement
 - **E003**: IF statement improper formatting
 - **E004**: IF EXIST syntax mixing
 - **E005**: Invalid path syntax
@@ -177,7 +177,7 @@ python blint.py --help
 
 ### Ways to Contribute
 - 🐛 Report bugs or issues
-- 💡 Suggest new rules or features  
+- 💡 Suggest new rules or features
 - 📖 Improve documentation
 - 🧪 Add test cases
 - 🔧 Submit bug fixes or enhancements

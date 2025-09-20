@@ -115,9 +115,9 @@ class TestMainFunction:
                 with self.capture_stdout() as captured:
                     try:
                         main()
-                    except SystemExit as e:
+                    except SystemExit as sys_exit:
                         # Exit code 0 or 1 is expected
-                        assert e.code in [0, 1]
+                        assert sys_exit.code in [0, 1]
                     output = captured.getvalue()
 
                 assert "Error: No valid batch file provided" in output
@@ -138,9 +138,9 @@ echo %var%
                 with self.capture_stdout() as captured:
                     try:
                         main()
-                    except SystemExit as e:
+                    except SystemExit as sys_exit:
                         # Exit code 0 or 1 is expected
-                        assert e.code in [0, 1]
+                        assert sys_exit.code in [0, 1]
                     output = captured.getvalue()
 
                 assert "DETAILED ISSUES:" in output
@@ -161,9 +161,9 @@ set var=unquoted
                 with self.capture_stdout() as captured:
                     try:
                         main()
-                    except SystemExit as e:
+                    except SystemExit as sys_exit:
                         # Exit code 0 or 1 is expected
-                        assert e.code in [0, 1]
+                        assert sys_exit.code in [0, 1]
                     output = captured.getvalue()
 
                 assert "DETAILED ISSUES:" in output
@@ -185,9 +185,9 @@ echo Hello World
                 with self.capture_stdout() as captured:
                     try:
                         main()
-                    except SystemExit as e:
+                    except SystemExit as sys_exit:
                         # Exit code 0 or 1 is expected
-                        assert e.code in [0, 1]
+                        assert sys_exit.code in [0, 1]
                     output = captured.getvalue()
 
                 assert "DETAILED ISSUES:" in output
@@ -209,9 +209,9 @@ echo %var%
                 with self.capture_stdout() as captured:
                     try:
                         main()
-                    except SystemExit as e:
+                    except SystemExit as sys_exit:
                         # Exit code 0 or 1 is expected
-                        assert e.code in [0, 1]
+                        assert sys_exit.code in [0, 1]
                     output = captured.getvalue()
 
                 assert "DETAILED ISSUES:" in output
@@ -246,9 +246,9 @@ echo %var%
                     with self.capture_stdout() as captured:
                         try:
                             main()
-                        except SystemExit as e:
+                        except SystemExit as sys_exit:
                             # Exit code 0 or 1 is expected
-                            assert e.code in [0, 1]
+                            assert sys_exit.code in [0, 1]
                         output = captured.getvalue()
 
                     assert "Error: Permission denied" in output
@@ -269,9 +269,9 @@ echo %var%
                     with self.capture_stdout() as captured:
                         try:
                             main()
-                        except SystemExit as e:
+                        except SystemExit as sys_exit:
                             # Exit code 0 or 1 is expected
-                            assert e.code in [0, 1]
+                            assert sys_exit.code in [0, 1]
                         output = captured.getvalue()
 
                     assert "Error: Could not read the batch file" in output
@@ -292,9 +292,9 @@ echo %var%
                     with self.capture_stdout() as captured:
                         try:
                             main()
-                        except SystemExit as e:
+                        except SystemExit as sys_exit:
                             # Exit code 0 or 1 is expected
-                            assert e.code in [0, 1]
+                            assert sys_exit.code in [0, 1]
                         output = captured.getvalue()
 
                     assert "Error: Unexpected error while processing" in output
@@ -324,9 +324,9 @@ echo %var%
                         with self.capture_stdout() as captured:
                             try:
                                 main()
-                            except SystemExit as e:
+                            except SystemExit as sys_exit:
                                 # Exit code 0 or 1 is expected
-                                assert e.code in [0, 1]
+                                assert sys_exit.code in [0, 1]
                             output = captured.getvalue()
 
                         # Should process successfully without showing help
@@ -350,9 +350,9 @@ echo %var%
                 with self.capture_stdout() as captured:
                     try:
                         main()
-                    except SystemExit as e:
+                    except SystemExit as sys_exit:
                         # Exit code 0 or 1 is expected
-                        assert e.code in [0, 1]
+                        assert sys_exit.code in [0, 1]
                     output = captured.getvalue()
 
                 assert "DETAILED ISSUES:" in output
@@ -373,9 +373,9 @@ echo %var%
                 with self.capture_stdout() as captured:
                     try:
                         main()
-                    except SystemExit as e:
+                    except SystemExit as sys_exit:
                         # Exit code 0 or 1 is expected
-                        assert e.code in [0, 1]
+                        assert sys_exit.code in [0, 1]
                     output = captured.getvalue()
 
                 assert "DETAILED ISSUES:" in output
@@ -396,9 +396,9 @@ echo %var%
                 with self.capture_stdout() as captured:
                     try:
                         main()
-                    except SystemExit as e:
+                    except SystemExit as sys_exit:
                         # Exit code 0 or 1 is expected
-                        assert e.code in [0, 1]
+                        assert sys_exit.code in [0, 1]
                     output = captured.getvalue()
 
                 assert "DETAILED ISSUES:" in output
@@ -421,9 +421,9 @@ echo %var%
                 with self.capture_stdout() as captured:
                     try:
                         main()
-                    except SystemExit as e:
+                    except SystemExit as sys_exit:
                         # Exit code 0 or 1 is expected
-                        assert e.code in [0, 1]
+                        assert sys_exit.code in [0, 1]
                     output = captured.getvalue()
 
                 assert "DETAILED ISSUES:" in output
@@ -444,9 +444,9 @@ echo %var%
                 with self.capture_stdout() as captured:
                     try:
                         main()
-                    except SystemExit as e:
+                    except SystemExit as sys_exit:
                         # Exit code 0 or 1 is expected
-                        assert e.code in [0, 1]
+                        assert sys_exit.code in [0, 1]
                     output = captured.getvalue()
 
                 # Check output order: detailed first, then summary, then severity
@@ -477,9 +477,9 @@ echo "%var%"
                 with self.capture_stdout() as captured:
                     try:
                         main()
-                    except SystemExit as e:
+                    except SystemExit as sys_exit:
                         # Exit code 0 or 1 is expected
-                        assert e.code in [0, 1]
+                        assert sys_exit.code in [0, 1]
                     output = captured.getvalue()
 
                 # Should still show structure even with no issues
@@ -527,9 +527,9 @@ if exist "somefile.txt" (
                 with self.capture_stdout() as captured:
                     try:
                         main()
-                    except SystemExit as e:
+                    except SystemExit as sys_exit:
                         # Exit code 0 or 1 is expected
-                        assert e.code in [0, 1]
+                        assert sys_exit.code in [0, 1]
                     output = captured.getvalue()
                     # Should have printed something (detailed output at minimum)
                     assert "DETAILED ISSUES:" in output
@@ -560,9 +560,9 @@ class TestCommandLineIntegration:
                 with patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
                     try:
                         main()
-                    except SystemExit as e:
+                    except SystemExit as sys_exit:
                         # Exit code 0 or 1 is expected
-                        assert e.code in [0, 1]
+                        assert sys_exit.code in [0, 1]
                     output = mock_stdout.getvalue()
 
                 assert "DETAILED ISSUES:" in output
@@ -677,9 +677,9 @@ set "PROPERLY_QUOTED=safe value"
                 with patch("builtins.print"):
                     try:
                         main()  # This should execute without error
-                    except SystemExit as e:
+                    except SystemExit as sys_exit:
                         # Exit code 0 or 1 is expected
-                        assert e.code in [0, 1]
+                        assert sys_exit.code in [0, 1]
 
         finally:
             sys.argv = original_argv
