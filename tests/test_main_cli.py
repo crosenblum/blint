@@ -113,7 +113,11 @@ class TestMainFunction:
         try:
             with patch("sys.argv", ["blint.py", temp_file_path]):
                 with self.capture_stdout() as captured:
-                    main()
+                    try:
+                        main()
+                    except SystemExit as e:
+                        # Exit code 0 or 1 is expected
+                        assert e.code in [0, 1]
                     output = captured.getvalue()
 
                 assert "Error: No valid batch file provided" in output
@@ -132,11 +136,15 @@ echo %var%
         try:
             with patch("sys.argv", ["blint.py", temp_file]):
                 with self.capture_stdout() as captured:
-                    main()
+                    try:
+                        main()
+                    except SystemExit as e:
+                        # Exit code 0 or 1 is expected
+                        assert e.code in [0, 1]
                     output = captured.getvalue()
 
-                assert "DETAILED ERRORS:" in output
-                assert "ERROR SEVERITY:" in output
+                assert "DETAILED ISSUES:" in output
+                assert "SEVERITY BREAKDOWN:" in output
         finally:
             os.unlink(temp_file)
 
@@ -151,13 +159,17 @@ set var=unquoted
         try:
             with patch("sys.argv", ["blint.py", temp_file, "--summary"]):
                 with self.capture_stdout() as captured:
-                    main()
+                    try:
+                        main()
+                    except SystemExit as e:
+                        # Exit code 0 or 1 is expected
+                        assert e.code in [0, 1]
                     output = captured.getvalue()
 
-                assert "DETAILED ERRORS:" in output
+                assert "DETAILED ISSUES:" in output
                 assert "SUMMARY:" in output
-                assert "Total errors:" in output
-                assert "ERROR SEVERITY:" in output
+                assert "Total issues:" in output
+                assert "SEVERITY BREAKDOWN:" in output
         finally:
             os.unlink(temp_file)
 
@@ -171,11 +183,15 @@ echo Hello World
         try:
             with patch("sys.argv", ["blint.py", temp_file, "--severity"]):
                 with self.capture_stdout() as captured:
-                    main()
+                    try:
+                        main()
+                    except SystemExit as e:
+                        # Exit code 0 or 1 is expected
+                        assert e.code in [0, 1]
                     output = captured.getvalue()
 
-                assert "DETAILED ERRORS:" in output
-                assert "ERROR SEVERITY:" in output
+                assert "DETAILED ISSUES:" in output
+                assert "SEVERITY BREAKDOWN:" in output
         finally:
             os.unlink(temp_file)
 
@@ -191,12 +207,16 @@ echo %var%
         try:
             with patch("sys.argv", ["blint.py", temp_file, "--summary", "--severity"]):
                 with self.capture_stdout() as captured:
-                    main()
+                    try:
+                        main()
+                    except SystemExit as e:
+                        # Exit code 0 or 1 is expected
+                        assert e.code in [0, 1]
                     output = captured.getvalue()
 
-                assert "DETAILED ERRORS:" in output
+                assert "DETAILED ISSUES:" in output
                 assert "SUMMARY:" in output
-                assert "ERROR SEVERITY:" in output
+                assert "SEVERITY BREAKDOWN:" in output
         finally:
             os.unlink(temp_file)
 
@@ -224,7 +244,11 @@ echo %var%
             with patch("blint.lint_batch_file", side_effect=PermissionError("Permission denied")):
                 with patch("sys.argv", ["blint.py", temp_file]):
                     with self.capture_stdout() as captured:
-                        main()
+                        try:
+                            main()
+                        except SystemExit as e:
+                            # Exit code 0 or 1 is expected
+                            assert e.code in [0, 1]
                         output = captured.getvalue()
 
                     assert "Error: Permission denied" in output
@@ -243,7 +267,11 @@ echo %var%
             ):
                 with patch("sys.argv", ["blint.py", temp_file]):
                     with self.capture_stdout() as captured:
-                        main()
+                        try:
+                            main()
+                        except SystemExit as e:
+                            # Exit code 0 or 1 is expected
+                            assert e.code in [0, 1]
                         output = captured.getvalue()
 
                     assert "Error: Could not read the batch file" in output
@@ -262,7 +290,11 @@ echo %var%
             with patch("blint.lint_batch_file", side_effect=ValueError("Something went wrong")):
                 with patch("sys.argv", ["blint.py", temp_file]):
                     with self.capture_stdout() as captured:
-                        main()
+                        try:
+                            main()
+                        except SystemExit as e:
+                            # Exit code 0 or 1 is expected
+                            assert e.code in [0, 1]
                         output = captured.getvalue()
 
                     assert "Error: Unexpected error while processing" in output
@@ -290,11 +322,15 @@ echo %var%
                 if temp_file.endswith(".bat"):
                     with patch("sys.argv", test_argv):
                         with self.capture_stdout() as captured:
-                            main()
+                            try:
+                                main()
+                            except SystemExit as e:
+                                # Exit code 0 or 1 is expected
+                                assert e.code in [0, 1]
                             output = captured.getvalue()
 
                         # Should process successfully without showing help
-                        assert "DETAILED ERRORS:" in output
+                        assert "DETAILED ISSUES:" in output
                         assert "Batch Linter - Help Menu" not in output
         finally:
             if os.path.exists(temp_file):
@@ -312,10 +348,14 @@ echo %var%
         try:
             with patch("sys.argv", ["blint.py", temp_file_path]):
                 with self.capture_stdout() as captured:
-                    main()
+                    try:
+                        main()
+                    except SystemExit as e:
+                        # Exit code 0 or 1 is expected
+                        assert e.code in [0, 1]
                     output = captured.getvalue()
 
-                assert "DETAILED ERRORS:" in output
+                assert "DETAILED ISSUES:" in output
         finally:
             os.unlink(temp_file_path)
 
@@ -331,10 +371,14 @@ echo %var%
         try:
             with patch("sys.argv", ["blint.py", temp_file_path]):
                 with self.capture_stdout() as captured:
-                    main()
+                    try:
+                        main()
+                    except SystemExit as e:
+                        # Exit code 0 or 1 is expected
+                        assert e.code in [0, 1]
                     output = captured.getvalue()
 
-                assert "DETAILED ERRORS:" in output
+                assert "DETAILED ISSUES:" in output
         finally:
             os.unlink(temp_file_path)
 
@@ -350,10 +394,14 @@ echo %var%
         try:
             with patch("sys.argv", ["blint.py", temp_file_path]):
                 with self.capture_stdout() as captured:
-                    main()
+                    try:
+                        main()
+                    except SystemExit as e:
+                        # Exit code 0 or 1 is expected
+                        assert e.code in [0, 1]
                     output = captured.getvalue()
 
-                assert "DETAILED ERRORS:" in output
+                assert "DETAILED ISSUES:" in output
         finally:
             os.unlink(temp_file_path)
 
@@ -371,10 +419,14 @@ echo %var%
         try:
             with patch("sys.argv", ["blint.py", temp_filename]):
                 with self.capture_stdout() as captured:
-                    main()
+                    try:
+                        main()
+                    except SystemExit as e:
+                        # Exit code 0 or 1 is expected
+                        assert e.code in [0, 1]
                     output = captured.getvalue()
 
-                assert "DETAILED ERRORS:" in output
+                assert "DETAILED ISSUES:" in output
         finally:
             if os.path.exists(temp_filename):
                 os.unlink(temp_filename)
@@ -390,13 +442,17 @@ echo %var%
         try:
             with patch("sys.argv", ["blint.py", temp_file, "--summary"]):
                 with self.capture_stdout() as captured:
-                    main()
+                    try:
+                        main()
+                    except SystemExit as e:
+                        # Exit code 0 or 1 is expected
+                        assert e.code in [0, 1]
                     output = captured.getvalue()
 
                 # Check output order: detailed first, then summary, then severity
-                detailed_pos = output.find("DETAILED ERRORS:")
+                detailed_pos = output.find("DETAILED ISSUES:")
                 summary_pos = output.find("SUMMARY:")
-                severity_pos = output.find("ERROR SEVERITY:")
+                severity_pos = output.find("SEVERITY BREAKDOWN:")
 
                 assert detailed_pos != -1
                 assert summary_pos != -1
@@ -419,13 +475,17 @@ echo "%var%"
         try:
             with patch("sys.argv", ["blint.py", temp_file, "--summary"]):
                 with self.capture_stdout() as captured:
-                    main()
+                    try:
+                        main()
+                    except SystemExit as e:
+                        # Exit code 0 or 1 is expected
+                        assert e.code in [0, 1]
                     output = captured.getvalue()
 
                 # Should still show structure even with no issues
-                assert "DETAILED ERRORS:" in output
+                assert "DETAILED ISSUES:" in output
                 assert "SUMMARY:" in output
-                assert "ERROR SEVERITY:" in output
+                assert "SEVERITY BREAKDOWN:" in output
         finally:
             os.unlink(temp_file)
 
@@ -465,10 +525,14 @@ if exist "somefile.txt" (
 
                 # Capture output to verify main() executes correctly
                 with self.capture_stdout() as captured:
-                    main()
+                    try:
+                        main()
+                    except SystemExit as e:
+                        # Exit code 0 or 1 is expected
+                        assert e.code in [0, 1]
                     output = captured.getvalue()
                     # Should have printed something (detailed output at minimum)
-                    assert "DETAILED ERRORS:" in output
+                    assert "DETAILED ISSUES:" in output
 
         finally:
             sys.argv = original_argv
@@ -494,10 +558,14 @@ class TestCommandLineIntegration:
 
             with patch("sys.argv", ["blint.py", temp_file_path]):
                 with patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
-                    main()
+                    try:
+                        main()
+                    except SystemExit as e:
+                        # Exit code 0 or 1 is expected
+                        assert e.code in [0, 1]
                     output = mock_stdout.getvalue()
 
-                assert "DETAILED ERRORS:" in output
+                assert "DETAILED ISSUES:" in output
         finally:
             os.unlink(temp_file_path)
 
@@ -607,7 +675,11 @@ set "PROPERLY_QUOTED=safe value"
 
                 # Mock print to capture output without cluttering test output
                 with patch("builtins.print"):
-                    main()  # This should execute without error
+                    try:
+                        main()  # This should execute without error
+                    except SystemExit as e:
+                        # Exit code 0 or 1 is expected
+                        assert e.code in [0, 1]
 
         finally:
             sys.argv = original_argv
