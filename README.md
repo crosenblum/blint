@@ -29,7 +29,7 @@
 ## Installation 🛠️
 
 ### Prerequisites
-- **Python 3.13+** (required)
+- **Python 3.8+** (required)
 - **Windows 10/11** (recommended, but works on older versions)
 - **PowerShell 5.1+** or Command Prompt
 
