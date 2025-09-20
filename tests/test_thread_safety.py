@@ -7,8 +7,7 @@ import tempfile
 import time
 from typing import List
 
-
-from blint import lint_batch_file, read_file_with_encoding, LintIssue
+from blint import LintIssue, lint_batch_file, read_file_with_encoding
 
 
 class TestThreadSafety:

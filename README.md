@@ -202,28 +202,6 @@ with ThreadPoolExecutor(max_workers=4) as executor:
 - **P007**: Temporary file without random name
 - **P008**: Delayed expansion without enablement
 
-## Best Practices 🎯
-
-### Essential Practices
-1. **Always start with `@ECHO OFF`** to prevent command echoing
-2. **Quote all variables** that might contain spaces: `"%VAR%"`
-3. **Check `%ERRORLEVEL%`** after critical operations
-4. **Use `.cmd` extension** instead of `.bat` for scripts targeting Windows 2000 and newer versions
-5. **Set proper exit codes** (`EXIT /b 0` for success, `EXIT /b 1` for errors)
-
-### Security Guidelines
-1. **Validate user input** before using in commands
-2. **Quote all SET commands**: `SET "VAR=value"`
-3. **Add confirmation prompts** for destructive operations
-4. **Check for admin privileges** when needed
-5. **Use environment variables** instead of hardcoded paths
-
-### Performance Tips
-1. **Use `%RANDOM%`** in temporary filenames
-2. **Avoid redundant operations** and duplicate code
-3. **Only use `SETLOCAL ENABLEDELAYEDEXPANSION`** when needed
-4. **Pair `SETLOCAL` with `ENDLOCAL`** properly
-
 ## 🔥 **Advanced Features**
 
 ### Enterprise Integration

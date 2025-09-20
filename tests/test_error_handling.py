@@ -9,13 +9,13 @@ import warnings
 import pytest
 
 from blint import (
+    LintIssue,
     _check_security_issues,
     _check_syntax_errors,
     _check_warning_issues,
     lint_batch_file,
     main,
     read_file_with_encoding,
-    LintIssue,
 )
 
 
