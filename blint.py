@@ -4,7 +4,7 @@ This module provides comprehensive functionality to lint Windows batch files (.b
 for common syntax errors, style issues, security vulnerabilities, and performance problems.
 
 Features:
-- 70+ built-in rules across 5 severity levels
+- 45+ built-in rules across 5 severity levels
 - Thread-safe operations for concurrent processing
 - Robust encoding detection and handling
 - Comprehensive error handling for production use
