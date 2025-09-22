@@ -244,33 +244,29 @@ class TestStyleIssueChecking:
 
     def test_long_parameter_list(self) -> None:
         """Test long parameter list detection."""
-        lines = [""]
         issues = _check_style_issues(
-            "CALL :myfunc param1 param2 param3 param4 param5 param6", 1, lines
+            "CALL :myfunc param1 param2 param3 param4 param5 param6", 1
         )
         assert len(issues) == 1
         assert "S014" in issues[0].rule.code
 
     def test_magic_number_timeout(self) -> None:
         """Test magic number detection in timeout command."""
-        lines = [""]
-        issues = _check_style_issues("timeout /t 300", 1, lines)
+        issues = _check_style_issues("timeout /t 300", 1)
         # May also trigger S003 (command capitalization)
         s009_issues = [i for i in issues if i.rule.code == "S009"]
         assert len(s009_issues) == 1
 
     def test_magic_number_ping(self) -> None:
         """Test magic number detection in ping command."""
-        lines = [""]
-        issues = _check_style_issues("ping google.com -n 50", 1, lines)
+        issues = _check_style_issues("ping google.com -n 50", 1)
         # May also trigger S003 (command capitalization)
         s009_issues = [i for i in issues if i.rule.code == "S009"]
         assert len(s009_issues) == 1
 
     def test_command_casing_inconsistency(self) -> None:
         """Test command casing inconsistency detection."""
-        lines = [""]
-        issues = _check_style_issues("echo hello", 1, lines)
+        issues = _check_style_issues("echo hello", 1)
         assert len(issues) == 1
         assert "S003" in issues[0].rule.code
 
@@ -740,8 +736,8 @@ class TestAdditionalCoverageTests:
         """Test style issue detection edge cases."""
         from blint import _check_style_issues
 
-        lines = ["timeout /t 5"]  # Small number, should not trigger magic number rule
-        issues = _check_style_issues("timeout /t 5", 1, lines)
+        # Small number, should not trigger magic number rule
+        issues = _check_style_issues("timeout /t 5", 1)
         # Should only trigger S003 (command casing), not S009 (magic number)
         s009_issues = [i for i in issues if i.rule.code == "S009"]
         assert len(s009_issues) == 0  # Small numbers shouldn't be flagged
@@ -976,21 +972,21 @@ class TestStyleChecking:
 
     def test_magic_numbers_in_timeout_command(self) -> None:
         """Test detection of magic numbers in timeout command."""
-        issues = _check_style_issues("timeout /t 30", 1, [])
+        issues = _check_style_issues("timeout /t 30", 1)
         magic_number_issues = [i for i in issues if i.rule.code == "S009"]
         assert len(magic_number_issues) == 1
         assert "30" in magic_number_issues[0].context
 
     def test_magic_numbers_in_ping_command(self) -> None:
         """Test detection of magic numbers in ping command."""
-        issues = _check_style_issues("ping localhost -n 100", 1, [])
+        issues = _check_style_issues("ping localhost -n 100", 1)
         magic_number_issues = [i for i in issues if i.rule.code == "S009"]
         assert len(magic_number_issues) == 1
         assert "100" in magic_number_issues[0].context
 
     def test_small_numbers_not_flagged(self) -> None:
         """Test that small numbers are not flagged as magic numbers."""
-        issues = _check_style_issues("ping localhost -n 5", 1, [])
+        issues = _check_style_issues("ping localhost -n 5", 1)
         magic_number_issues = [i for i in issues if i.rule.code == "S009"]
         assert len(magic_number_issues) == 0
 
@@ -998,7 +994,7 @@ class TestStyleChecking:
         """Test command casing consistency detection."""
         keywords = ["echo", "set", "if", "for", "goto", "call"]
         for keyword in keywords:
-            issues = _check_style_issues(f"{keyword} test", 1, [])
+            issues = _check_style_issues(f"{keyword} test", 1)
             casing_issues = [i for i in issues if i.rule.code == "S003"]
             assert len(casing_issues) == 1
             assert keyword in casing_issues[0].context
