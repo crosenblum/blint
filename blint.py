@@ -1049,7 +1049,7 @@ def _check_syntax_errors(  # pylint: disable=too-many-locals,too-many-branches,t
     # E014: Missing colon in CALL statement
     call_match = re.match(r"call\s+([^:\s]\S*)", stripped, re.IGNORECASE)
     if call_match:
-        label_text: str = call_match.group(1)
+        call_label_text: str = call_match.group(1)
         # Check if this looks like a label call (not an external program)
         # Skip if it contains path separators, extensions, or is a known command
         builtin_commands = {
@@ -1091,15 +1091,15 @@ def _check_syntax_errors(  # pylint: disable=too-many-locals,too-many-branches,t
             "help",
         }
         if (
-            not re.search(r"[\\/.:]|\.(?:bat|cmd|exe|com)$", label_text.lower())
-            and label_text.lower() not in builtin_commands
+            not re.search(r"[\\/.:]|\.(?:bat|cmd|exe|com)$", call_label_text.lower())
+            and call_label_text.lower() not in builtin_commands
         ):
             # This appears to be a label call without colon
             issues.append(
                 LintIssue(
                     line_number=line_num,
                     rule=RULES["E014"],
-                    context=f"CALL to label '{label_text}' should use colon: CALL :{label_text}",
+                    context=f"CALL to label '{call_label_text}' should use colon: CALL :{call_label_text}",
                 )
             )
 
@@ -1107,7 +1107,7 @@ def _check_syntax_errors(  # pylint: disable=too-many-locals,too-many-branches,t
     # Check for IF statements that may have improper syntax
     if_match = re.match(r"if\s+(.+)", stripped, re.IGNORECASE)
     if if_match:
-        if_content = if_match.group(1).strip()
+        if_content: str = if_match.group(1).strip()
 
         # Valid IF patterns to check for:
         # 1. IF EXIST filename
@@ -1404,7 +1404,7 @@ def _check_style_issues(
     # S014: Long parameter list affects readability
     call_match = re.match(r"call\s+:[A-Z0-9_]+\s+(.*)", stripped, re.IGNORECASE)
     if call_match:
-        params = call_match.group(1).split()
+        params: list[str] = call_match.group(1).split()
         if len(params) > 5:  # More than 5 parameters
             issues.append(
                 LintIssue(
@@ -1608,14 +1608,16 @@ def _check_performance_issues(  # pylint: disable=too-many-arguments,too-many-po
 
     # P009: Inefficient FOR loop pattern
     for_match = re.match(r"for\s+/f\s+[\"']([^\"']*)[\"']\s+%%\w+\s+in", stripped, re.IGNORECASE)
-    if for_match and "tokens=*" not in for_match.group(1).lower():
-        issues.append(
-            LintIssue(
-                line_number=line_num,
-                rule=RULES["P009"],
-                context="FOR /F loop could be optimized with 'tokens=*' parameter",
+    if for_match:
+        for_options: str = for_match.group(1).lower()
+        if "tokens=*" not in for_options:
+            issues.append(
+                LintIssue(
+                    line_number=line_num,
+                    rule=RULES["P009"],
+                    context="FOR /F loop could be optimized with 'tokens=*' parameter",
+                )
             )
-        )
 
     # P010: Missing optimization flags for directory operations
     if re.match(r"dir\s+(?!.*\/f)", stripped, re.IGNORECASE):
@@ -1750,19 +1752,19 @@ def _check_goto_colon_consistency(  # pylint: disable=too-many-locals
     """Check for consistent colon usage in GOTO statements throughout the script (S015)."""
     issues: List[LintIssue] = []
 
-    goto_statements = []
+    goto_statements: List[Tuple[int, str, bool]] = []
 
     # Collect all GOTO statements (excluding GOTO :EOF which has special rules)
     for i, line in enumerate(lines, start=1):
         stripped = line.strip().lower()
         goto_match = re.match(r"goto\s+(:?\S+)", stripped, re.IGNORECASE)
         if goto_match:
-            label_text = goto_match.group(1).lower()
+            label_text: str = goto_match.group(1).lower()
             # Skip GOTO :EOF and GOTO EOF as they have special handling
             if label_text not in [":eof", "eof"]:
                 # Skip dynamic labels (containing variables)
                 if not re.search(r"%[^%]+%|!\w+!", label_text):
-                    uses_colon = label_text.startswith(":")
+                    uses_colon: bool = label_text.startswith(":")
                     goto_statements.append((i, label_text, uses_colon))
 
     if len(goto_statements) < 2:
@@ -2249,16 +2251,18 @@ def _check_redundant_assignments(lines: List[str]) -> List[LintIssue]:
         # Track assignments
         set_match = re.match(r"set\s+([A-Za-z0-9_]+)\s*=", stripped, re.IGNORECASE)
         if set_match:
-            var_name = set_match.group(1).upper()
+            var_name: str = set_match.group(1).upper()
             var_assignments[var_name].append(i)
 
         # Track usage
         for var_match in re.finditer(
             r"%([A-Za-z0-9_]+)%|!([A-Za-z0-9_]+)!", stripped, re.IGNORECASE
         ):
-            var_name = (var_match.group(1) or var_match.group(2) or "").upper()
-            if var_name:
-                var_usage[var_name].append(i)
+            var_name_part1: Optional[str] = var_match.group(1)
+            var_name_part2: Optional[str] = var_match.group(2) 
+            used_var_name: str = (var_name_part1 or var_name_part2 or "").upper()
+            if used_var_name:
+                var_usage[used_var_name].append(i)
 
     # Find redundant assignments (multiple assignments without usage in between)
     for var_name, assignment_lines in var_assignments.items():
