@@ -1099,7 +1099,10 @@ def _check_syntax_errors(  # pylint: disable=too-many-locals,too-many-branches,t
                 LintIssue(
                     line_number=line_num,
                     rule=RULES["E014"],
-                    context=f"CALL to label '{call_label_text}' should use colon: CALL :{call_label_text}",
+                    context=(
+                        f"CALL to label '{call_label_text}' should use colon: "
+                        f"CALL :{call_label_text}"
+                    ),
                 )
             )
 
@@ -2237,11 +2240,15 @@ def _check_missing_documentation(lines: List[str]) -> List[LintIssue]:
     return issues
 
 
-def _check_redundant_assignments(lines: List[str]) -> List[LintIssue]:
-    """Check for redundant variable assignments (P011)."""
-    issues: List[LintIssue] = []
-
-    # Track variable assignments and usage
+def _collect_variable_data(lines: List[str]) -> Tuple[Dict[str, List[int]], Dict[str, List[int]]]:
+    """Collect variable assignments and usage data from lines.
+    
+    Args:
+        lines: List of batch file lines
+        
+    Returns:
+        Tuple containing (assignments dict, usage dict)
+    """
     var_assignments: Dict[str, List[int]] = defaultdict(list)
     var_usage: Dict[str, List[int]] = defaultdict(list)
 
@@ -2263,6 +2270,24 @@ def _check_redundant_assignments(lines: List[str]) -> List[LintIssue]:
             used_var_name: str = (var_name_part1 or var_name_part2 or "").upper()
             if used_var_name:
                 var_usage[used_var_name].append(i)
+
+    return var_assignments, var_usage
+
+
+def _find_redundant_assignments(
+    var_assignments: Dict[str, List[int]],
+    var_usage: Dict[str, List[int]]
+) -> List[LintIssue]:
+    """Find redundant variable assignments.
+    
+    Args:
+        var_assignments: Dictionary mapping variable names to assignment line numbers
+        var_usage: Dictionary mapping variable names to usage line numbers
+        
+    Returns:
+        List of lint issues for redundant assignments
+    """
+    issues: List[LintIssue] = []
 
     # Find redundant assignments (multiple assignments without usage in between)
     for var_name, assignment_lines in var_assignments.items():
@@ -2291,6 +2316,12 @@ def _check_redundant_assignments(lines: List[str]) -> List[LintIssue]:
                     )
 
     return issues
+
+
+def _check_redundant_assignments(lines: List[str]) -> List[LintIssue]:
+    """Check for redundant variable assignments (P011)."""
+    var_assignments, var_usage = _collect_variable_data(lines)
+    return _find_redundant_assignments(var_assignments, var_usage)
 
 
 def group_issues(issues: List[LintIssue]) -> DefaultDict[RuleSeverity, List[LintIssue]]:
