@@ -8,7 +8,7 @@ import subprocess
 import sys
 import tempfile
 from types import TracebackType
-from typing import TYPE_CHECKING, Any, Optional, Protocol, TextIO
+from typing import TYPE_CHECKING, Optional, Protocol, TextIO
 from unittest.mock import patch
 
 from blint import find_batch_files, main
