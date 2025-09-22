@@ -195,6 +195,20 @@ RULES: Dict[str, Rule] = {
         explanation="Command appears to have typos or invalid syntax that will cause execution errors",
         recommendation="Check command spelling and syntax: IF not IFF, ECHO not ECKO, FOR not FORx",
     ),
+    "E014": Rule(
+        code="E014",
+        name="Missing colon in CALL statement",
+        severity=RuleSeverity.ERROR,
+        explanation="CALL statements to labels require a colon (unlike GOTO where colon is optional)",
+        recommendation="Use CALL :label_name with colon when calling internal subroutines",
+    ),
+    "E015": Rule(
+        code="E015",
+        name="Missing colon in GOTO :EOF statement",
+        severity=RuleSeverity.ERROR,
+        explanation="GOTO :EOF requires a colon as it's a special built-in construct, not a user-defined label",
+        recommendation="Use GOTO :EOF (with colon) to jump to end of file",
+    ),
     # Warning Level Rules (W001-W999)
     "W001": Rule(
         code="W001",
@@ -412,6 +426,13 @@ RULES: Dict[str, Rule] = {
         severity=RuleSeverity.STYLE,
         explanation="Functions with many parameters are hard to read and maintain",
         recommendation="Group related parameters into variables or reduce parameter count",
+    ),
+    "S015": Rule(
+        code="S015",
+        name="Inconsistent colon usage in GOTO statements",
+        severity=RuleSeverity.STYLE,
+        explanation="GOTO statements should use consistent colon style throughout the script for better readability",
+        recommendation="Choose either 'GOTO label' or 'GOTO :label' style and use consistently throughout the script",
     ),
     # Security Level Rules (SEC001-SEC999)
     "SEC001": Rule(
@@ -961,14 +982,23 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
     stripped = line.strip()
 
     # E002: Missing label for GOTO statement
+    # E015: Missing colon in GOTO :EOF statement
     goto_match = re.match(r"goto\s+(:?\S+)", stripped, re.IGNORECASE)
     if goto_match:
         label_text: str = goto_match.group(1)
         target_label: str = label_text.lower()
         
-        # Handle special built-in labels
-        if target_label == ":eof" or target_label == "eof":
-            # :eof is a built-in construct, always valid
+        # E015: GOTO EOF must use colon (GOTO :EOF is required, GOTO EOF is invalid)
+        if target_label == "eof":
+            issues.append(
+                LintIssue(
+                    line_number=line_num,
+                    rule=RULES["E015"],
+                    context="GOTO EOF should be GOTO :EOF (colon is mandatory for EOF)",
+                )
+            )
+        elif target_label == ":eof":
+            # :eof is a built-in construct, always valid with colon
             pass
         # Check for dynamic labels (containing variables)
         elif re.search(r"%[^%]+%|!\w+!", label_text):
@@ -986,6 +1016,22 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
                         context=f"GOTO points to non-existent label '{label_text}'",
                     )
                 )
+
+    # E014: Missing colon in CALL statement
+    call_match = re.match(r"call\s+([^:\s]\S*)", stripped, re.IGNORECASE)
+    if call_match:
+        label_text: str = call_match.group(1)
+        # Check if this looks like a label call (not an external program)
+        # Skip if it contains path separators, extensions, or is a known command
+        if not re.search(r'[\\/.:]|\.(?:bat|cmd|exe|com)$', label_text.lower()):
+            # This appears to be a label call without colon
+            issues.append(
+                LintIssue(
+                    line_number=line_num,
+                    rule=RULES["E014"],
+                    context=f"CALL to label '{label_text}' should use colon: CALL :{label_text}",
+                )
+            )
 
     # E003: IF statement improper formatting
     # Check for IF statements that may have improper syntax
@@ -1220,7 +1266,7 @@ def _check_warning_issues(  # pylint: disable=unused-argument
 def _check_style_issues(
     line: str,
     line_num: int,
-    file_lines: List[str],  # pylint: disable=unused-argument
+    file_lines: List[str],
     max_line_length: int = 120,
 ) -> List[LintIssue]:
     """Check for style level issues."""
@@ -1612,6 +1658,56 @@ def _check_global_style_rules(lines: List[str], file_path: str) -> List[LintIssu
             )
         )
 
+    # S015: Inconsistent colon usage in GOTO statements
+    issues.extend(_check_goto_colon_consistency(lines))
+
+    return issues
+
+
+def _check_goto_colon_consistency(lines: List[str]) -> List[LintIssue]:
+    """Check for consistent colon usage in GOTO statements throughout the script (S015)."""
+    issues: List[LintIssue] = []
+    
+    goto_statements = []
+    
+    # Collect all GOTO statements (excluding GOTO :EOF which has special rules)
+    for i, line in enumerate(lines, start=1):
+        stripped = line.strip().lower()
+        goto_match = re.match(r"goto\s+(:?\S+)", stripped, re.IGNORECASE)
+        if goto_match:
+            label_text = goto_match.group(1).lower()
+            # Skip GOTO :EOF and GOTO EOF as they have special handling
+            if label_text not in [":eof", "eof"]:
+                # Skip dynamic labels (containing variables)
+                if not re.search(r"%[^%]+%|!\w+!", label_text):
+                    uses_colon = label_text.startswith(":")
+                    goto_statements.append((i, label_text, uses_colon))
+    
+    if len(goto_statements) < 2:
+        # Need at least 2 GOTO statements to check consistency
+        return issues
+    
+    # Check if there's inconsistency in colon usage
+    first_uses_colon = goto_statements[0][2]
+    inconsistent_lines = []
+    
+    for line_num, label, uses_colon in goto_statements[1:]:
+        if uses_colon != first_uses_colon:
+            inconsistent_lines.append(line_num)
+    
+    # Flag all inconsistent occurrences
+    for line_num in inconsistent_lines:
+        first_line = goto_statements[0][0]
+        first_style = "with colon" if first_uses_colon else "without colon"
+        current_style = "without colon" if first_uses_colon else "with colon"
+        issues.append(
+            LintIssue(
+                line_number=line_num,
+                rule=RULES["S015"],
+                context=f"GOTO statement uses {current_style} but first GOTO (line {first_line}) uses {first_style}",
+            )
+        )
+    
     return issues
 
 

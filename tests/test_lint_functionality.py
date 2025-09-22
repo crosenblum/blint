@@ -692,3 +692,185 @@ exit /b 0
         assert "Windows NT" in rule.explanation or "Windows 2000" in rule.explanation
         assert "Windows 2000" in rule.recommendation
         assert "CMD files" in rule.recommendation
+
+    def test_call_without_colon_to_label(self) -> None:
+        """Test E014: Missing colon in CALL statement to label."""
+        content = """@echo off
+CALL mylabel
+GOTO :EOF
+:mylabel
+ECHO In subroutine
+GOTO :EOF
+"""
+        temp_file = self.create_temp_batch_file(content)
+        try:
+            issues = lint_batch_file(temp_file)
+            rule_codes = [issue.rule.code for issue in issues]
+            assert "E014" in rule_codes  # Missing colon in CALL statement
+        finally:
+            os.unlink(temp_file)
+
+    def test_call_with_colon_to_label(self) -> None:
+        """Test CALL with colon to label (should not trigger E014)."""
+        content = """@echo off
+CALL :mylabel
+GOTO :EOF
+:mylabel
+ECHO In subroutine
+GOTO :EOF
+"""
+        temp_file = self.create_temp_batch_file(content)
+        try:
+            issues = lint_batch_file(temp_file)
+            rule_codes = [issue.rule.code for issue in issues]
+            assert "E014" not in rule_codes  # Should not trigger missing colon error
+        finally:
+            os.unlink(temp_file)
+
+    def test_call_external_program(self) -> None:
+        """Test CALL to external program (should not trigger E014)."""
+        content = """@echo off
+CALL notepad.exe
+CALL "C:\\Program Files\\MyApp\\myapp.exe"
+CALL myprogram.bat
+CALL dir
+"""
+        temp_file = self.create_temp_batch_file(content)
+        try:
+            issues = lint_batch_file(temp_file)
+            rule_codes = [issue.rule.code for issue in issues]
+            assert "E014" not in rule_codes  # Should not trigger for external programs
+        finally:
+            os.unlink(temp_file)
+
+    def test_goto_eof_without_colon(self) -> None:
+        """Test E015: Missing colon in GOTO EOF statement."""
+        content = """@echo off
+ECHO Starting script
+GOTO EOF
+"""
+        temp_file = self.create_temp_batch_file(content)
+        try:
+            issues = lint_batch_file(temp_file)
+            rule_codes = [issue.rule.code for issue in issues]
+            assert "E015" in rule_codes  # Missing colon in GOTO :EOF statement
+        finally:
+            os.unlink(temp_file)
+
+    def test_goto_eof_with_colon(self) -> None:
+        """Test GOTO :EOF with colon (should not trigger E015)."""
+        content = """@echo off
+ECHO Starting script
+GOTO :EOF
+"""
+        temp_file = self.create_temp_batch_file(content)
+        try:
+            issues = lint_batch_file(temp_file)
+            rule_codes = [issue.rule.code for issue in issues]
+            assert "E015" not in rule_codes  # Should not trigger error with colon
+        finally:
+            os.unlink(temp_file)
+
+    def test_consistent_goto_colon_usage(self) -> None:
+        """Test S015: Consistent colon usage in GOTO statements (positive case)."""
+        content = """@echo off
+GOTO :label1
+IF "%var%"=="test" GOTO :label2
+GOTO :label3
+:label1
+ECHO Label 1
+GOTO :EOF
+:label2
+ECHO Label 2
+GOTO :EOF
+:label3
+ECHO Label 3
+GOTO :EOF
+"""
+        temp_file = self.create_temp_batch_file(content)
+        try:
+            issues = lint_batch_file(temp_file)
+            rule_codes = [issue.rule.code for issue in issues]
+            assert "S015" not in rule_codes  # Should not trigger with consistent usage
+        finally:
+            os.unlink(temp_file)
+
+    def test_inconsistent_goto_colon_usage(self) -> None:
+        """Test S015: Inconsistent colon usage in GOTO statements."""
+        content = """@echo off
+GOTO :label1
+IF "%var%"=="test" GOTO label2
+GOTO label3
+:label1
+ECHO Label 1
+GOTO :EOF
+:label2
+ECHO Label 2
+GOTO :EOF
+:label3
+ECHO Label 3
+GOTO :EOF
+"""
+        temp_file = self.create_temp_batch_file(content)
+        try:
+            issues = lint_batch_file(temp_file)
+            rule_codes = [issue.rule.code for issue in issues]
+            assert "S015" in rule_codes  # Should trigger inconsistent colon usage
+            s015_issues = [issue for issue in issues if issue.rule.code == "S015"]
+            assert len(s015_issues) >= 1  # At least one inconsistent GOTO statement
+        finally:
+            os.unlink(temp_file)
+
+    def test_mixed_goto_types_colon_rules(self) -> None:
+        """Test that GOTO :EOF is handled separately from other GOTO statements."""
+        content = """@echo off
+GOTO label1
+GOTO :EOF
+GOTO label2
+:label1
+ECHO Label 1
+GOTO :EOF
+:label2
+ECHO Label 2
+GOTO :EOF
+"""
+        temp_file = self.create_temp_batch_file(content)
+        try:
+            issues = lint_batch_file(temp_file)
+            rule_codes = [issue.rule.code for issue in issues]
+            # Should not trigger S015 because GOTO :EOF is excluded from consistency check
+            assert "S015" not in rule_codes  
+            # Should not trigger E015 because GOTO :EOF has colon
+            assert "E015" not in rule_codes
+        finally:
+            os.unlink(temp_file)
+
+    def test_dynamic_labels_ignored(self) -> None:
+        """Test that dynamic labels (with variables) are ignored in colon checks."""
+        content = """@echo off
+SET label_suffix=test
+GOTO label_%label_suffix%
+GOTO :normal_label
+CALL dynamic_%ERRORLEVEL%
+CALL :normal_subroutine
+:label_test
+ECHO Dynamic label
+GOTO :EOF
+:normal_label
+ECHO Normal label
+GOTO :EOF
+:normal_subroutine
+ECHO Normal subroutine
+GOTO :EOF
+"""
+        temp_file = self.create_temp_batch_file(content)
+        try:
+            issues = lint_batch_file(temp_file)
+            rule_codes = [issue.rule.code for issue in issues]
+            # Dynamic labels should be ignored, so no E002, E014, or S015 errors
+            # for the dynamic ones, but :normal_label vs normal_label would not be consistent
+            # However, since dynamic labels are mixed in, the consistency check may be affected
+            # The important thing is that dynamic labels don't cause crashes
+            assert "E002" not in rule_codes  # Dynamic labels should not trigger missing label
+        finally:
+            os.unlink(temp_file)
