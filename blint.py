@@ -4,7 +4,7 @@ This module provides comprehensive functionality to lint Windows batch files (.b
 for common syntax errors, style issues, security vulnerabilities, and performance problems.
 
 Features:
-- 45+ built-in rules across 5 severity levels
+- 60+ built-in rules across 5 severity levels
 - Thread-safe operations for concurrent processing
 - Robust encoding detection and handling
 - Comprehensive error handling for production use
@@ -174,6 +174,27 @@ RULES: Dict[str, Rule] = {
         explanation="FOR loops must contain the DO keyword for proper execution",
         recommendation="Add DO keyword: FOR %%i IN (items) DO command",
     ),
+    "E011": Rule(
+        code="E011",
+        name="Invalid variable expansion syntax",
+        severity=RuleSeverity.ERROR,
+        explanation="Variable references must use proper %VAR% or !VAR! syntax with matching delimiters",
+        recommendation="Ensure variables use matching % or ! delimiters: %VAR% for standard, !VAR! for delayed expansion",
+    ),
+    "E012": Rule(
+        code="E012",
+        name="Missing CALL for subroutine invocation",
+        severity=RuleSeverity.ERROR,
+        explanation="Subroutines should be invoked using CALL :label_name to ensure proper return handling",
+        recommendation="Use CALL :subroutine_name instead of direct label jumps for subroutines",
+    ),
+    "E013": Rule(
+        code="E013",
+        name="Invalid command syntax detected",
+        severity=RuleSeverity.ERROR,
+        explanation="Command appears to have typos or invalid syntax that will cause execution errors",
+        recommendation="Check command spelling and syntax: IF not IFF, ECHO not ECKO, FOR not FORx",
+    ),
     # Warning Level Rules (W001-W999)
     "W001": Rule(
         code="W001",
@@ -266,6 +287,27 @@ RULES: Dict[str, Rule] = {
         explanation="Multiple labels with the same name can cause unpredictable GOTO behavior",
         recommendation="Rename duplicate labels to have unique names",
     ),
+    "W014": Rule(
+        code="W014",
+        name="Missing PAUSE for user interaction",
+        severity=RuleSeverity.WARNING,
+        explanation="Interactive scripts should include PAUSE to prevent window from closing immediately",
+        recommendation="Add PAUSE before EXIT to allow user to see script output",
+    ),
+    "W015": Rule(
+        code="W015",
+        name="Deprecated command usage",
+        severity=RuleSeverity.WARNING,
+        explanation="Command is deprecated and may not be available in newer Windows versions",
+        recommendation="Replace deprecated commands with modern alternatives",
+    ),
+    "W016": Rule(
+        code="W016",
+        name="Mixed variable syntax within script",
+        severity=RuleSeverity.WARNING,
+        explanation="Inconsistent use of %VAR% and !VAR! syntax within the same script reduces readability",
+        recommendation="Use consistent variable expansion syntax throughout the script",
+    ),
     # Style Level Rules (S001-S999)
     "S001": Rule(
         code="S001",
@@ -350,6 +392,27 @@ RULES: Dict[str, Rule] = {
         explanation="Lines longer than 120 characters are hard to read and maintain",
         recommendation="Break long lines into multiple shorter lines for better readability",
     ),
+    "S012": Rule(
+        code="S012",
+        name="Inconsistent indentation",
+        severity=RuleSeverity.STYLE,
+        explanation="Inconsistent indentation makes code harder to read and maintain",
+        recommendation="Use consistent indentation (4 spaces or 1 tab) for nested blocks",
+    ),
+    "S013": Rule(
+        code="S013",
+        name="Missing file header documentation",
+        severity=RuleSeverity.STYLE,
+        explanation="Scripts should include header documentation for maintainability",
+        recommendation="Add REM comments at the top describing script purpose, author, and date",
+    ),
+    "S014": Rule(
+        code="S014",
+        name="Long parameter list affects readability",
+        severity=RuleSeverity.STYLE,
+        explanation="Functions with many parameters are hard to read and maintain",
+        recommendation="Group related parameters into variables or reduce parameter count",
+    ),
     # Security Level Rules (SEC001-SEC999)
     "SEC001": Rule(
         code="SEC001",
@@ -403,6 +466,27 @@ RULES: Dict[str, Rule] = {
         severity=RuleSeverity.SECURITY,
         explanation="Hardcoded temp paths may not exist and could create security vulnerabilities",
         recommendation="Use %%TEMP%% environment variable instead of hardcoded temporary paths",
+    ),
+    "SEC008": Rule(
+        code="SEC008",
+        name="Plain text credentials detected",
+        severity=RuleSeverity.SECURITY,
+        explanation="Hardcoded passwords and credentials in scripts pose serious security risks",
+        recommendation="Use secure credential storage or prompt for credentials at runtime",
+    ),
+    "SEC009": Rule(
+        code="SEC009",
+        name="PowerShell execution policy bypass",
+        severity=RuleSeverity.SECURITY,
+        explanation="Bypassing PowerShell execution policy can allow malicious scripts to run",
+        recommendation="Avoid using -ExecutionPolicy Bypass unless absolutely necessary",
+    ),
+    "SEC010": Rule(
+        code="SEC010",
+        name="Sensitive information in ECHO output",
+        severity=RuleSeverity.SECURITY,
+        explanation="ECHO statements may display sensitive information in console or log files",
+        recommendation="Avoid echoing passwords, API keys, or other sensitive data",
     ),
     # Performance Level Rules (P001-P999)
     "P001": Rule(
@@ -462,6 +546,27 @@ RULES: Dict[str, Rule] = {
         explanation="Using !VARIABLES! requires SETLOCAL "
         "ENABLEDELAYEDEXPANSION for proper functionality",
         recommendation="Add SETLOCAL ENABLEDELAYEDEXPANSION before using !variable! syntax",
+    ),
+    "P009": Rule(
+        code="P009",
+        name="Inefficient FOR loop pattern",
+        severity=RuleSeverity.PERFORMANCE,
+        explanation="FOR loop could be optimized for better performance with large data sets",
+        recommendation="Use 'tokens=*' parameter for better performance: FOR /f \"tokens=*\" %%i",
+    ),
+    "P010": Rule(
+        code="P010",
+        name="Missing optimization flags for directory operations",
+        severity=RuleSeverity.PERFORMANCE,
+        explanation="Directory operations can be faster with appropriate flags",
+        recommendation="Use /F flag for large directory operations: DIR /F",
+    ),
+    "P011": Rule(
+        code="P011",
+        name="Redundant variable assignments",
+        severity=RuleSeverity.PERFORMANCE,
+        explanation="Multiple assignments to the same variable without usage is inefficient",
+        recommendation="Remove intermediate assignments or combine operations",
     ),
 }
 
@@ -640,6 +745,41 @@ ARCHITECTURE_SPECIFIC_PATTERNS = [
 ]
 
 UNICODE_PROBLEMATIC_COMMANDS = {"type", "echo", "find", "findstr"}
+
+# Additional patterns for new rules
+DEPRECATED_COMMANDS = {"assign", "backup", "comp", "edlin", "join", "subst"}
+
+COMMON_COMMAND_TYPOS = {
+    "iff": "if",
+    "ecko": "echo", 
+    "ecoh": "echo",
+    "forx": "for",
+    "fro": "for",
+    "goot": "goto",
+    "sett": "set",
+    "caal": "call",
+    "exitt": "exit",
+}
+
+CREDENTIAL_PATTERNS = [
+    r"password\s*=\s*[\"']?[^\s\"']+[\"']?",
+    r"pwd\s*=\s*[\"']?[^\s\"']+[\"']?",
+    r"passwd\s*=\s*[\"']?[^\s\"']+[\"']?",
+    r"apikey\s*=\s*[\"']?[^\s\"']+[\"']?",
+    r"api_key\s*=\s*[\"']?[^\s\"']+[\"']?",
+    r"secret\s*=\s*[\"']?[^\s\"']+[\"']?",
+    r"token\s*=\s*[\"']?[^\s\"']+[\"']?",
+]
+
+SENSITIVE_ECHO_PATTERNS = [
+    r"echo.*password",
+    r"echo.*pwd",
+    r"echo.*passwd", 
+    r"echo.*apikey",
+    r"echo.*api_key",
+    r"echo.*secret",
+    r"echo.*token",
+]
 
 
 def print_help() -> None:
@@ -844,6 +984,52 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
             )
         )
 
+    # E011: Invalid variable expansion syntax
+    # Check for unmatched % or ! in variable references
+    percent_pattern = r"(?:^|[^%])%[A-Z0-9_]+(?:[^%]|$)"
+    exclamation_pattern = r"(?:^|[^!])![A-Z0-9_]+(?:[^!]|$)"
+    
+    if re.search(percent_pattern, stripped, re.IGNORECASE):
+        issues.append(
+            LintIssue(
+                line_number=line_num,
+                rule=RULES["E011"],
+                context="Variable reference missing closing % delimiter",
+            )
+        )
+    
+    if re.search(exclamation_pattern, stripped, re.IGNORECASE):
+        issues.append(
+            LintIssue(
+                line_number=line_num,
+                rule=RULES["E011"],
+                context="Delayed expansion variable missing closing ! delimiter",
+            )
+        )
+
+    # E012: Missing CALL for subroutine invocation
+    # Check for potential subroutine calls without CALL (label followed by parameters)
+    if re.match(r":[A-Z0-9_]+\s+\S+", stripped, re.IGNORECASE):
+        issues.append(
+            LintIssue(
+                line_number=line_num,
+                rule=RULES["E012"],
+                context="Potential subroutine call without CALL keyword",
+            )
+        )
+
+    # E013: Invalid command syntax detected
+    first_word = stripped.split()[0].lower() if stripped.split() else ""
+    if first_word in COMMON_COMMAND_TYPOS:
+        correct_command = COMMON_COMMAND_TYPOS[first_word]
+        issues.append(
+            LintIssue(
+                line_number=line_num,
+                rule=RULES["E013"],
+                context=f"Command '{first_word}' appears to be a typo, did you mean '{correct_command}'?",
+            )
+        )
+
     return issues
 
 
@@ -931,6 +1117,17 @@ def _check_warning_issues(  # pylint: disable=unused-argument
             )
         )
 
+    # W015: Deprecated command usage
+    first_word = stripped.split()[0].lower() if stripped.split() else ""
+    if first_word in DEPRECATED_COMMANDS:
+        issues.append(
+            LintIssue(
+                line_number=line_num,
+                rule=RULES["W015"],
+                context=f"Command '{first_word}' is deprecated and may not work in newer Windows versions",
+            )
+        )
+
     return issues
 
 
@@ -992,6 +1189,20 @@ def _check_style_issues(
                 context=f"Line is {line_length} characters (max {max_line_length})",
             )
         )
+
+
+    # S014: Long parameter list affects readability
+    call_match = re.match(r"call\s+:[A-Z0-9_]+\s+(.*)", stripped, re.IGNORECASE)
+    if call_match:
+        params = call_match.group(1).split()
+        if len(params) > 5:  # More than 5 parameters
+            issues.append(
+                LintIssue(
+                    line_number=line_num,
+                    rule=RULES["S014"],
+                    context=f"Function call has {len(params)} parameters, consider grouping them",
+                )
+            )
 
     return issues
 
@@ -1078,6 +1289,40 @@ def _check_security_issues(line: str, line_num: int) -> List[LintIssue]:
             )
             break
 
+    # SEC008: Plain text credentials detected
+    for pattern in CREDENTIAL_PATTERNS:
+        if re.search(pattern, stripped, re.IGNORECASE):
+            issues.append(
+                LintIssue(
+                    line_number=line_num,
+                    rule=RULES["SEC008"],
+                    context="Potential hardcoded credentials detected",
+                )
+            )
+            break
+
+    # SEC009: PowerShell execution policy bypass
+    if re.search(r"powershell.*-executionpolicy\s+bypass", stripped, re.IGNORECASE):
+        issues.append(
+            LintIssue(
+                line_number=line_num,
+                rule=RULES["SEC009"],
+                context="PowerShell execution policy bypass detected",
+            )
+        )
+
+    # SEC010: Sensitive information in ECHO output
+    for pattern in SENSITIVE_ECHO_PATTERNS:
+        if re.search(pattern, stripped, re.IGNORECASE):
+            issues.append(
+                LintIssue(
+                    line_number=line_num,
+                    rule=RULES["SEC010"],
+                    context="ECHO statement may display sensitive information",
+                )
+            )
+            break
+
     return issues
 
 
@@ -1144,6 +1389,27 @@ def _check_performance_issues(  # pylint: disable=too-many-arguments,too-many-po
                 line_number=line_num,
                 rule=RULES["P008"],
                 context="Delayed expansion variables used without ENABLEDELAYEDEXPANSION",
+            )
+        )
+
+    # P009: Inefficient FOR loop pattern
+    for_match = re.match(r"for\s+/f\s+[\"']([^\"']*)[\"']\s+%%\w+\s+in", stripped, re.IGNORECASE)
+    if for_match and "tokens=*" not in for_match.group(1).lower():
+        issues.append(
+            LintIssue(
+                line_number=line_num,
+                rule=RULES["P009"],
+                context="FOR /F loop could be optimized with 'tokens=*' parameter",
+            )
+        )
+
+    # P010: Missing optimization flags for directory operations
+    if re.match(r"dir\s+(?!.*\/f)", stripped, re.IGNORECASE):
+        issues.append(
+            LintIssue(
+                line_number=line_num,
+                rule=RULES["P010"],
+                context="DIR command could be optimized with /F flag for large directories",
             )
         )
 
@@ -1310,6 +1576,13 @@ def _process_file_checks(  # pylint: disable=too-many-arguments,too-many-positio
     issues.extend(_check_unreachable_code(lines))
     issues.extend(_check_redundant_operations(lines))
     issues.extend(_check_code_duplication(lines))
+    
+    # New global checks
+    issues.extend(_check_missing_pause(lines))
+    issues.extend(_check_mixed_variable_syntax(lines))
+    issues.extend(_check_inconsistent_indentation(lines))
+    issues.extend(_check_missing_documentation(lines))
+    issues.extend(_check_redundant_assignments(lines))
 
     return issues
 
@@ -1506,6 +1779,219 @@ def _check_code_duplication(lines: List[str]) -> List[LintIssue]:
                     )
                 )
 
+    return issues
+
+
+def _check_missing_pause(lines: List[str]) -> List[LintIssue]:
+    """Check for missing PAUSE in interactive scripts (W014)."""
+    issues: List[LintIssue] = []
+    
+    has_user_input = any(
+        re.search(r"set\s+/p\s+", line, re.IGNORECASE) or
+        re.search(r"choice\s+", line, re.IGNORECASE)
+        for line in lines
+    )
+    
+    has_pause = any(
+        re.search(r"pause", line, re.IGNORECASE)
+        for line in lines
+    )
+    
+    if has_user_input and not has_pause:
+        # Find an appropriate line number (near the end)
+        for i in range(len(lines) - 1, -1, -1):
+            if lines[i].strip() and not lines[i].strip().startswith("rem"):
+                issues.append(
+                    LintIssue(
+                        line_number=i + 1,
+                        rule=RULES["W014"],
+                        context="Interactive script should include PAUSE to prevent window closing",
+                    )
+                )
+                break
+    
+    return issues
+
+
+def _check_mixed_variable_syntax(lines: List[str]) -> List[LintIssue]:
+    """Check for mixed variable syntax within the same script (W016)."""
+    issues: List[LintIssue] = []
+    
+    has_percent_vars = False
+    has_exclamation_vars = False
+    first_percent_line = 0
+    first_exclamation_line = 0
+    
+    for i, line in enumerate(lines, start=1):
+        if not has_percent_vars and re.search(r"%[A-Z0-9_]+%", line, re.IGNORECASE):
+            has_percent_vars = True
+            first_percent_line = i
+        
+        if not has_exclamation_vars and re.search(r"![A-Z0-9_]+!", line, re.IGNORECASE):
+            has_exclamation_vars = True
+            first_exclamation_line = i
+    
+    if has_percent_vars and has_exclamation_vars:
+        # Flag the second occurrence
+        if first_exclamation_line > first_percent_line:
+            issues.append(
+                LintIssue(
+                    line_number=first_exclamation_line,
+                    rule=RULES["W016"],
+                    context=f"Mixed variable syntax detected (standard %VAR% used on line {first_percent_line})",
+                )
+            )
+        else:
+            issues.append(
+                LintIssue(
+                    line_number=first_percent_line,
+                    rule=RULES["W016"],
+                    context=f"Mixed variable syntax detected (delayed !VAR! used on line {first_exclamation_line})",
+                )
+            )
+    
+    return issues
+
+
+def _check_inconsistent_indentation(lines: List[str]) -> List[LintIssue]:
+    """Check for inconsistent indentation patterns across the file (S012)."""
+    issues: List[LintIssue] = []
+    
+    # Track indentation patterns
+    indented_lines = []
+    for i, line in enumerate(lines, start=1):
+        if line.startswith(("\t", " ")):
+            leading_whitespace = ""
+            for char in line:
+                if char in ("\t", " "):
+                    leading_whitespace += char
+                else:
+                    break
+            indented_lines.append((i, leading_whitespace))
+    
+    if len(indented_lines) < 2:
+        return issues
+    
+    # Check for mixed patterns
+    uses_tabs = False
+    uses_spaces = False
+    first_tab_line = 0
+    first_space_line = 0
+    
+    for line_num, whitespace in indented_lines:
+        if "\t" in whitespace:
+            uses_tabs = True
+            if first_tab_line == 0:
+                first_tab_line = line_num
+        if " " in whitespace:
+            uses_spaces = True
+            if first_space_line == 0:
+                first_space_line = line_num
+        
+        # Also check for mixed within single line
+        if "\t" in whitespace and " " in whitespace:
+            issues.append(
+                LintIssue(
+                    line_number=line_num,
+                    rule=RULES["S012"],
+                    context="Line mixes tabs and spaces for indentation",
+                )
+            )
+    
+    # Check for inconsistent indentation across file
+    if uses_tabs and uses_spaces and not issues:  # Only if no single-line mixing found
+        later_line = max(first_tab_line, first_space_line)
+        if first_tab_line < first_space_line:
+            context = f"File mixes tabs (line {first_tab_line}) and spaces (line {first_space_line}) for indentation"
+        else:
+            context = f"File mixes spaces (line {first_space_line}) and tabs (line {first_tab_line}) for indentation"
+        
+        issues.append(
+            LintIssue(
+                line_number=later_line,
+                rule=RULES["S012"],
+                context=context,
+            )
+        )
+    
+    return issues
+
+
+def _check_missing_documentation(lines: List[str]) -> List[LintIssue]:
+    """Check for missing file header documentation (S013)."""
+    issues: List[LintIssue] = []
+    
+    if len(lines) < 5:  # Skip very short files
+        return issues
+    
+    # Check first 5 lines for meaningful comments
+    meaningful_comments = 0
+    for line in lines[:5]:
+        stripped = line.strip().lower()
+        if stripped.startswith("rem ") and len(stripped) > 10:
+            # Look for documentation indicators
+            if any(keyword in stripped for keyword in ["script:", "purpose:", "author:", "date:", "description:"]):
+                meaningful_comments += 1
+    
+    if meaningful_comments == 0:
+        issues.append(
+            LintIssue(
+                line_number=1,
+                rule=RULES["S013"],
+                context="Script lacks header documentation (purpose, author, date)",
+            )
+        )
+    
+    return issues
+
+
+def _check_redundant_assignments(lines: List[str]) -> List[LintIssue]:
+    """Check for redundant variable assignments (P011)."""
+    issues: List[LintIssue] = []
+    
+    # Track variable assignments and usage
+    var_assignments: Dict[str, List[int]] = defaultdict(list)
+    var_usage: Dict[str, List[int]] = defaultdict(list)
+    
+    for i, line in enumerate(lines, start=1):
+        stripped = line.strip()
+        
+        # Track assignments
+        set_match = re.match(r"set\s+([A-Za-z0-9_]+)\s*=", stripped, re.IGNORECASE)
+        if set_match:
+            var_name = set_match.group(1).upper()
+            var_assignments[var_name].append(i)
+        
+        # Track usage
+        for var_match in re.finditer(r"%([A-Za-z0-9_]+)%|!([A-Za-z0-9_]+)!", stripped, re.IGNORECASE):
+            var_name = (var_match.group(1) or var_match.group(2) or "").upper()
+            if var_name:
+                var_usage[var_name].append(i)
+    
+    # Find redundant assignments (multiple assignments without usage in between)
+    for var_name, assignment_lines in var_assignments.items():
+        if len(assignment_lines) > 1:
+            usage_lines = var_usage.get(var_name, [])
+            
+            for i in range(len(assignment_lines) - 1):
+                current_assignment = assignment_lines[i]
+                next_assignment = assignment_lines[i + 1]
+                
+                # Check if there's any usage between assignments
+                usage_between = any(
+                    current_assignment < usage_line < next_assignment
+                    for usage_line in usage_lines
+                )
+                
+                if not usage_between:
+                    issues.append(
+                        LintIssue(
+                            line_number=current_assignment,
+                            rule=RULES["P011"],
+                            context=f"Variable '{var_name}' reassigned on line {next_assignment} without intermediate usage",
+                        )
+                    )
+    
     return issues
 
 
