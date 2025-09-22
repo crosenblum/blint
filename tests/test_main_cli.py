@@ -965,7 +965,9 @@ class TestCLIMainFunctionCoverage:
         captured = capsys.readouterr()
         assert "Error: Cannot access 'protected.bat'" in captured.out
 
-    def test_main_with_unicode_decode_error_in_processing(self, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_main_with_unicode_decode_error_in_processing(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         """Test main function handling UnicodeDecodeError during file processing."""
         import blint
 
@@ -989,7 +991,9 @@ class TestCLIMainFunctionCoverage:
         finally:
             os.unlink(temp_file)
 
-    def test_main_with_generic_file_error_in_processing(self, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_main_with_generic_file_error_in_processing(
+        self, capsys: pytest.CaptureFixture[str]
+    ) -> None:
         """Test main function handling generic file errors during processing."""
         import blint
 

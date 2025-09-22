@@ -2242,10 +2242,10 @@ def _check_missing_documentation(lines: List[str]) -> List[LintIssue]:
 
 def _collect_variable_data(lines: List[str]) -> Tuple[Dict[str, List[int]], Dict[str, List[int]]]:
     """Collect variable assignments and usage data from lines.
-    
+
     Args:
         lines: List of batch file lines
-        
+
     Returns:
         Tuple containing (assignments dict, usage dict)
     """
@@ -2275,15 +2275,14 @@ def _collect_variable_data(lines: List[str]) -> Tuple[Dict[str, List[int]], Dict
 
 
 def _find_redundant_assignments(
-    var_assignments: Dict[str, List[int]],
-    var_usage: Dict[str, List[int]]
+    var_assignments: Dict[str, List[int]], var_usage: Dict[str, List[int]]
 ) -> List[LintIssue]:
     """Find redundant variable assignments.
-    
+
     Args:
         var_assignments: Dictionary mapping variable names to assignment line numbers
         var_usage: Dictionary mapping variable names to usage line numbers
-        
+
     Returns:
         List of lint issues for redundant assignments
     """

@@ -390,7 +390,9 @@ class TestEncodingEdgeCases:
             original_open = open
             call_count = [0]
 
-            def mock_open_with_invalid_encoding(*args: object, **kwargs: object) -> Union[IO[str], IO[bytes]]:
+            def mock_open_with_invalid_encoding(
+                *args: object, **kwargs: object
+            ) -> Union[IO[str], IO[bytes]]:
                 call_count[0] += 1
                 # Let the first call (chardet) succeed
                 if "rb" in str(args) or "rb" in str(kwargs.get("mode", "")):
