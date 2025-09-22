@@ -228,4 +228,4 @@ def lint_directory(directory_path):
 
 ## License 📄
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see [LICENSE](./LICENSE) for details.
