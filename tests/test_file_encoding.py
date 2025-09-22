@@ -2,6 +2,7 @@
 
 import os
 import tempfile
+from typing import IO, Union
 from unittest.mock import MagicMock, mock_open, patch
 import warnings
 
@@ -389,15 +390,15 @@ class TestEncodingEdgeCases:
             original_open = open
             call_count = [0]
 
-            def mock_open_with_invalid_encoding(*args, **kwargs):
+            def mock_open_with_invalid_encoding(*args: object, **kwargs: object) -> Union[IO[str], IO[bytes]]:
                 call_count[0] += 1
                 # Let the first call (chardet) succeed
                 if "rb" in str(args) or "rb" in str(kwargs.get("mode", "")):
-                    return original_open(*args, **kwargs)
+                    return original_open(*args, **kwargs)  # type: ignore[call-overload]
                 # Fail the second call with text mode
                 if call_count[0] == 2:  # First text mode call with invalid encoding
                     raise LookupError("Invalid encoding")
-                return original_open(*args, **kwargs)
+                return original_open(*args, **kwargs)  # type: ignore[call-overload]
 
             with patch("builtins.open", side_effect=mock_open_with_invalid_encoding):
                 lines, _encoding = read_file_with_encoding(temp_file)

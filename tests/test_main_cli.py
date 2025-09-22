@@ -13,6 +13,8 @@ from types import TracebackType
 from typing import TYPE_CHECKING, Optional, Protocol, TextIO
 from unittest.mock import patch
 
+import pytest
+
 from blint import find_batch_files, main
 
 if TYPE_CHECKING:
@@ -926,7 +928,7 @@ class TestDirectoryFunctionality:
 class TestCLIMainFunctionCoverage:
     """Test CLI main function edge cases and error paths."""
 
-    def test_main_with_help_flag(self, capsys) -> None:
+    def test_main_with_help_flag(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test main function with --help flag."""
         with patch("sys.argv", ["blint.py", "--help"]):
             main()
@@ -934,7 +936,7 @@ class TestCLIMainFunctionCoverage:
         captured = capsys.readouterr()
         assert "Batch Linter - Help Menu" in captured.out
 
-    def test_main_with_no_arguments(self, capsys) -> None:
+    def test_main_with_no_arguments(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test main function with no arguments."""
         with patch("sys.argv", ["blint.py"]):
             main()
@@ -942,7 +944,7 @@ class TestCLIMainFunctionCoverage:
         captured = capsys.readouterr()
         assert "Batch Linter - Help Menu" in captured.out
 
-    def test_main_with_nonexistent_file(self, capsys) -> None:
+    def test_main_with_nonexistent_file(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test main function with nonexistent file."""
         with patch("sys.argv", ["blint.py", "nonexistent.bat"]):
             main()
@@ -950,7 +952,7 @@ class TestCLIMainFunctionCoverage:
         captured = capsys.readouterr()
         assert "Error: Path 'nonexistent.bat' not found." in captured.out
 
-    def test_main_with_permission_error(self, capsys) -> None:
+    def test_main_with_permission_error(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test main function with permission error."""
         import blint
 
@@ -963,7 +965,7 @@ class TestCLIMainFunctionCoverage:
         captured = capsys.readouterr()
         assert "Error: Cannot access 'protected.bat'" in captured.out
 
-    def test_main_with_unicode_decode_error_in_processing(self, capsys) -> None:
+    def test_main_with_unicode_decode_error_in_processing(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test main function handling UnicodeDecodeError during file processing."""
         import blint
 
@@ -987,7 +989,7 @@ class TestCLIMainFunctionCoverage:
         finally:
             os.unlink(temp_file)
 
-    def test_main_with_generic_file_error_in_processing(self, capsys) -> None:
+    def test_main_with_generic_file_error_in_processing(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test main function handling generic file errors during processing."""
         import blint
 
@@ -1008,7 +1010,7 @@ class TestCLIMainFunctionCoverage:
         finally:
             os.unlink(temp_file)
 
-    def test_main_no_files_could_be_processed(self, capsys) -> None:
+    def test_main_no_files_could_be_processed(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Test main function when no files can be processed."""
         import blint
 

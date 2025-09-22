@@ -4,6 +4,7 @@
 # pylint: disable=unused-argument,invalid-name,missing-class-docstring,too-few-public-methods
 # pylint: disable=unused-variable,unused-import
 
+from typing import Dict, Set
 from unittest.mock import mock_open, patch
 
 import pytest
@@ -136,33 +137,33 @@ class TestSyntaxErrorChecking:
 
     def test_if_statement_incomplete_comparison(self) -> None:
         """Test IF statement that looks incomplete (missing operator)."""
-        labels = {}
+        labels: Dict[str, int] = {}
         issues = _check_syntax_errors('IF "VARIABLE"', 1, labels)
         assert len(issues) == 1
         assert "E003" in issues[0].rule.code
 
     def test_command_typo_detection(self) -> None:
         """Test detection of common command typos."""
-        labels = {}
+        labels: Dict[str, int] = {}
         issues = _check_syntax_errors("IFF something", 1, labels)
         assert len(issues) == 1
         assert "E013" in issues[0].rule.code
 
     def test_empty_line_no_typo_detection(self) -> None:
         """Test that empty lines don't trigger typo detection."""
-        labels = {}
+        labels: Dict[str, int] = {}
         issues = _check_syntax_errors("   ", 1, labels)
         assert len(issues) == 0
 
     def test_call_without_colon_to_builtin_command(self) -> None:
         """Test CALL to builtin command (should not trigger colon warning)."""
-        labels = {}
+        labels: Dict[str, int] = {}
         issues = _check_syntax_errors("CALL dir", 1, labels)
         assert len(issues) == 0  # Should not trigger E014
 
     def test_call_without_colon_to_label_looking_name(self) -> None:
         """Test CALL to what looks like a label without colon."""
-        labels = {}
+        labels: Dict[str, int] = {}
         issues = _check_syntax_errors("CALL mylabel", 1, labels)
         assert len(issues) == 1
         assert "E014" in issues[0].rule.code
@@ -180,14 +181,14 @@ class TestWarningIssueChecking:
 
     def test_deprecated_command_usage(self) -> None:
         """Test detection of deprecated commands."""
-        set_vars = set()
+        set_vars: Set[str] = set()
         issues = _check_warning_issues("assign A: B:", 1, set_vars, False)
         assert len(issues) == 1
         assert "W015" in issues[0].rule.code
 
     def test_unquoted_variable_in_echo(self) -> None:
         """Test unquoted variable detection in ECHO command."""
-        set_vars = set()
+        set_vars: Set[str] = set()
         issues = _check_warning_issues("echo %VARIABLE%", 1, set_vars, False)
         # May also trigger W011 (Unicode handling issue for echo command)
         w005_issues = [i for i in issues if i.rule.code == "W005"]
@@ -195,14 +196,14 @@ class TestWarningIssueChecking:
 
     def test_ping_without_timeout(self) -> None:
         """Test PING without timeout parameter."""
-        set_vars = set()
+        set_vars: Set[str] = set()
         issues = _check_warning_issues("ping google.com", 1, set_vars, False)
         assert len(issues) == 1
         assert "W006" in issues[0].rule.code
 
     def test_setx_path_modification(self) -> None:
         """Test SETX PATH modification warning."""
-        set_vars = set()
+        set_vars: Set[str] = set()
         issues = _check_warning_issues("setx path %PATH%;C:\\temp", 1, set_vars, False)
         # May also trigger W005 (Unquoted variable)
         w008_issues = [i for i in issues if i.rule.code == "W008"]
@@ -210,28 +211,28 @@ class TestWarningIssueChecking:
 
     def test_older_windows_command(self) -> None:
         """Test older Windows command warning."""
-        set_vars = set()
+        set_vars: Set[str] = set()
         issues = _check_warning_issues("choice /c yn /m Continue?", 1, set_vars, False)
         assert len(issues) == 1
         assert "W009" in issues[0].rule.code
 
     def test_architecture_specific_pattern(self) -> None:
         """Test architecture-specific pattern detection."""
-        set_vars = set()
+        set_vars: Set[str] = set()
         issues = _check_warning_issues("cd Wow6432Node", 1, set_vars, False)
         assert len(issues) == 1
         assert "W010" in issues[0].rule.code
 
     def test_unicode_problematic_command(self) -> None:
         """Test Unicode problematic command."""
-        set_vars = set()
+        set_vars: Set[str] = set()
         issues = _check_warning_issues("type unicode_file.txt", 1, set_vars, False)
         assert len(issues) == 1
         assert "W011" in issues[0].rule.code
 
     def test_non_ascii_characters(self) -> None:
         """Test non-ASCII character detection."""
-        set_vars = set()
+        set_vars: Set[str] = set()
         issues = _check_warning_issues("echo Ñandú", 1, set_vars, False)  # Contains non-ASCII
         # May also trigger W011 (Unicode handling issue for echo command)
         w012_issues = [i for i in issues if i.rule.code == "W012"]
