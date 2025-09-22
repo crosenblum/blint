@@ -95,7 +95,6 @@ class TestFileEncodingEdgeCases:
             with pytest.raises(OSError, match="All encoding attempts failed"):
                 read_file_with_encoding("test.bat")
 
-
     def test_all_encodings_fail_no_exception(self) -> None:
         """Test when all encodings fail but no exception is stored."""
 
@@ -241,7 +240,9 @@ class TestStyleIssueChecking:
     def test_long_parameter_list(self) -> None:
         """Test long parameter list detection."""
         lines = [""]
-        issues = _check_style_issues("CALL :myfunc param1 param2 param3 param4 param5 param6", 1, lines)
+        issues = _check_style_issues(
+            "CALL :myfunc param1 param2 param3 param4 param5 param6", 1, lines
+        )
         assert len(issues) == 1
         assert "S014" in issues[0].rule.code
 
@@ -318,13 +319,17 @@ class TestPerformanceIssueChecking:
 
     def test_for_loop_without_tokens(self) -> None:
         """Test FOR loop without tokens optimization."""
-        issues = _check_performance_issues([""], 1, 'FOR /F "delims=," %%i IN (file.txt) DO echo %%i', False, False, False, False)
+        issues = _check_performance_issues(
+            [""], 1, 'FOR /F "delims=," %%i IN (file.txt) DO echo %%i', False, False, False, False
+        )
         assert len(issues) == 1
         assert "P009" in issues[0].rule.code
 
     def test_temporary_file_without_random(self) -> None:
         """Test temporary file without random name."""
-        issues = _check_performance_issues([""], 1, "echo content > temp.txt", False, False, False, False)
+        issues = _check_performance_issues(
+            [""], 1, "echo content > temp.txt", False, False, False, False
+        )
         assert len(issues) == 1
         assert "P007" in issues[0].rule.code
 
@@ -342,7 +347,9 @@ class TestPerformanceIssueChecking:
 
     def test_unnecessary_enabledelayedexpansion(self) -> None:
         """Test unnecessary ENABLEDELAYEDEXPANSION usage."""
-        issues = _check_performance_issues([""], 1, "setlocal enabledelayedexpansion", False, False, False, False)
+        issues = _check_performance_issues(
+            [""], 1, "setlocal enabledelayedexpansion", False, False, False, False
+        )
         # May also trigger P003 (unnecessary SETLOCAL)
         p004_issues = [i for i in issues if i.rule.code == "P004"]
         assert len(p004_issues) == 1
@@ -364,6 +371,7 @@ class TestGlobalFunctionChecking:
             "echo Processing...",
         ]
         from blint import _check_missing_pause
+
         issues = _check_missing_pause(lines)
         assert len(issues) == 1
         assert "W014" in issues[0].rule.code
@@ -375,6 +383,7 @@ class TestGlobalFunctionChecking:
             "echo Processing...",
         ]
         from blint import _check_missing_pause
+
         issues = _check_missing_pause(lines)
         assert len(issues) == 1
         assert "W014" in issues[0].rule.code
@@ -387,6 +396,7 @@ class TestGlobalFunctionChecking:
             "echo Done",
         ]
         from blint import _check_missing_pause
+
         issues = _check_missing_pause(lines)
         assert len(issues) == 0
 
@@ -397,6 +407,7 @@ class TestGlobalFunctionChecking:
             "echo !DELAYED_VAR!",
         ]
         from blint import _check_mixed_variable_syntax
+
         issues = _check_mixed_variable_syntax(lines)
         assert len(issues) == 1
         assert "W016" in issues[0].rule.code
@@ -406,9 +417,10 @@ class TestGlobalFunctionChecking:
         lines = [
             "echo start",
             "\t echo mixed indentation",  # Tab followed by space - mixed within line
-            "  echo other indentation",   # Just spaces
+            "  echo other indentation",  # Just spaces
         ]
         from blint import _check_inconsistent_indentation
+
         issues = _check_inconsistent_indentation(lines)
         assert len(issues) >= 1  # Should detect mixed indentation
         s012_issues = [i for i in issues if i.rule.code == "S012"]
@@ -423,6 +435,7 @@ class TestGlobalFunctionChecking:
             "echo end",
         ]
         from blint import _check_inconsistent_indentation
+
         issues = _check_inconsistent_indentation(lines)
         assert len(issues) == 1
         assert "S012" in issues[0].rule.code
@@ -437,6 +450,7 @@ class TestGlobalFunctionChecking:
             "echo here",
         ]
         from blint import _check_missing_documentation
+
         issues = _check_missing_documentation(lines)
         assert len(issues) == 1
         assert "S013" in issues[0].rule.code
@@ -451,6 +465,7 @@ class TestGlobalFunctionChecking:
             "echo content",
         ]
         from blint import _check_missing_documentation
+
         issues = _check_missing_documentation(lines)
         assert len(issues) == 0
 
@@ -462,6 +477,7 @@ class TestGlobalFunctionChecking:
             "echo %VAR%",
         ]
         from blint import _check_redundant_assignments
+
         issues = _check_redundant_assignments(lines)
         assert len(issues) == 1
         assert "P011" in issues[0].rule.code
@@ -475,6 +491,7 @@ class TestGlobalFunctionChecking:
             "echo %VAR%",
         ]
         from blint import _check_redundant_assignments
+
         issues = _check_redundant_assignments(lines)
         assert len(issues) == 0
 
@@ -484,10 +501,11 @@ class TestMainFunctionEdgeCases:
 
     def test_find_batch_files_file_not_batch(self) -> None:
         """Test find_batch_files with non-batch file."""
-        import tempfile
         import os
+        import tempfile
+
         from blint import find_batch_files
-        
+
         # Create a temporary file
         fd, temp_path = tempfile.mkstemp(suffix=".txt")
         try:
@@ -503,18 +521,18 @@ class TestMainFunctionEdgeCases:
     def test_find_batch_files_nonexistent_path(self) -> None:
         """Test find_batch_files with nonexistent path."""
         from blint import find_batch_files
-        
+
         with pytest.raises(FileNotFoundError):
             find_batch_files("/nonexistent/path")
 
     def test_validate_and_read_file_edge_cases(self) -> None:
         """Test _validate_and_read_file edge cases."""
         from blint import _validate_and_read_file
-        
+
         # Test empty file path
         with pytest.raises(ValueError, match="file_path must be a non-empty string"):
             _validate_and_read_file("")
-        
+
         # Test non-string file path
         with pytest.raises(ValueError, match="file_path must be a non-empty string"):
             _validate_and_read_file(None)
@@ -522,14 +540,16 @@ class TestMainFunctionEdgeCases:
     def test_analyze_script_structure_edge_cases(self) -> None:
         """Test _analyze_script_structure edge cases."""
         from blint import _analyze_script_structure
-        
+
         lines = [
             "setlocal",
             "set VAR=value",
-            "setlocal enabledelayedexpansion", 
+            "setlocal enabledelayedexpansion",
             "echo !VAR!",
         ]
-        has_setlocal, has_set_commands, has_delayed_expansion, uses_delayed_vars = _analyze_script_structure(lines)
+        has_setlocal, has_set_commands, has_delayed_expansion, uses_delayed_vars = (
+            _analyze_script_structure(lines)
+        )
         assert has_setlocal is True
         assert has_set_commands is True
         assert has_delayed_expansion is True
@@ -565,22 +585,24 @@ class TestAdditionalCoverageTests:
 
     def test_validate_and_read_file_large_file_warning(self) -> None:
         """Test large file warning in _validate_and_read_file."""
-        from blint import _validate_and_read_file
-        import tempfile
         import os
+        import tempfile
+
+        from blint import _validate_and_read_file
 
         # Mock a large file
         def mock_stat(*args: object, **kwargs: object) -> object:
             class StatResult:
                 st_size = 15 * 1024 * 1024  # 15MB file
                 st_mode = 0o100644  # Regular file mode
+
             return StatResult()
 
         fd, temp_path = tempfile.mkstemp(suffix=".bat")
         try:
             os.write(fd, b"@echo off\necho test")
             os.close(fd)
-            
+
             with patch("pathlib.Path.stat", side_effect=mock_stat):
                 with patch("builtins.open", mock_open(read_data="@echo off\necho test")):
                     lines, encoding = _validate_and_read_file(temp_path)
@@ -595,21 +617,23 @@ class TestAdditionalCoverageTests:
     def test_script_structure_analysis_edge_cases(self) -> None:
         """Test _analyze_script_structure with edge cases."""
         from blint import _analyze_script_structure
-        
+
         # Empty lines
         lines: list[str] = []
         result = _analyze_script_structure(lines)
         assert result == (False, False, False, False)
-        
+
         # Lines with various patterns
         lines = [
             "setlocal",
             "set /p VAR=Input: ",
-            "set /a NUM=5+3", 
+            "set /a NUM=5+3",
             "setlocal enabledelayedexpansion",
-            "echo !VAR!"
+            "echo !VAR!",
         ]
-        has_setlocal, has_set_commands, has_delayed_expansion, uses_delayed_vars = _analyze_script_structure(lines)
+        has_setlocal, has_set_commands, has_delayed_expansion, uses_delayed_vars = (
+            _analyze_script_structure(lines)
+        )
         assert has_setlocal is True
         assert has_set_commands is True  # Should detect set /p and set /a
         assert has_delayed_expansion is True
@@ -618,24 +642,24 @@ class TestAdditionalCoverageTests:
     def test_missing_pause_edge_case(self) -> None:
         """Test _check_missing_pause with edge cases."""
         from blint import _check_missing_pause
-        
+
         # Script with user input but already has pause - should not warn
         lines = [
             "set /p answer=Continue?",
             "echo Processing...",
             "pause > nul",  # Has pause, so no warning
-            "echo Done"
+            "echo Done",
         ]
         issues = _check_missing_pause(lines)
         assert len(issues) == 0
 
     def test_mixed_variable_syntax_edge_case(self) -> None:
-        """Test _check_mixed_variable_syntax with delayed variables first.""" 
+        """Test _check_mixed_variable_syntax with delayed variables first."""
         from blint import _check_mixed_variable_syntax
-        
+
         lines = [
             "echo !DELAYED_VAR!",  # Delayed expansion first
-            "echo %STANDARD_VAR%", # Standard expansion second
+            "echo %STANDARD_VAR%",  # Standard expansion second
         ]
         issues = _check_mixed_variable_syntax(lines)
         assert len(issues) == 1
@@ -644,14 +668,17 @@ class TestAdditionalCoverageTests:
 
     def test_find_batch_files_not_file_or_directory(self) -> None:
         """Test find_batch_files with invalid path type."""
-        from blint import find_batch_files
         import os
-        
+
+        from blint import find_batch_files
+
         # This should be very rare, but test the "neither file nor directory" path
         # We'll mock a path that exists but is neither
-        with patch("pathlib.Path.exists", return_value=True), \
-             patch("pathlib.Path.is_file", return_value=False), \
-             patch("pathlib.Path.is_dir", return_value=False):
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch("pathlib.Path.is_file", return_value=False),
+            patch("pathlib.Path.is_dir", return_value=False),
+        ):
             with pytest.raises(ValueError, match="neither a file nor a directory"):
                 find_batch_files("invalid_path")
 
@@ -664,28 +691,28 @@ class TestAdditionalCoverageTests:
     def test_security_is_command_in_safe_context(self) -> None:
         """Test _is_command_in_safe_context function coverage."""
         from blint import _is_command_in_safe_context
-        
+
         # Test REM comment context
         assert _is_command_in_safe_context("rem del *.* is dangerous") is True
         assert _is_command_in_safe_context("REM	format c: is dangerous") is True
-        
+
         # Test ECHO context
         assert _is_command_in_safe_context("echo The del command removes files") is True
         assert _is_command_in_safe_context("@echo format c: formats drive") is True
-        
+
         # Test non-safe context
         assert _is_command_in_safe_context("del *.* /q") is False
 
     def test_redundant_assignments_edge_case(self) -> None:
         """Test _check_redundant_assignments with complex patterns."""
         from blint import _check_redundant_assignments
-        
+
         # Test assignment with delayed variable usage
         lines = [
             "set VAR=value1",
-            "set VAR=value2", 
+            "set VAR=value2",
             "set VAR=value3",  # Multiple redundant assignments
-            "echo !VAR!"       # Usage with delayed expansion
+            "echo !VAR!",  # Usage with delayed expansion
         ]
         issues = _check_redundant_assignments(lines)
         assert len(issues) == 2  # Two redundant assignments
@@ -693,9 +720,9 @@ class TestAdditionalCoverageTests:
     def test_chardet_detected_encoding_not_in_list(self) -> None:
         """Test chardet detecting encoding not in our default list."""
         from blint import read_file_with_encoding
-        
+
         mock_detected = {"encoding": "iso-2022-jp", "confidence": 0.85}
-        
+
         with (
             patch("builtins.open", mock_open(read_data="test content")),
             patch("chardet.detect", return_value=mock_detected),
@@ -707,7 +734,7 @@ class TestAdditionalCoverageTests:
     def test_style_issues_edge_cases(self) -> None:
         """Test style issue detection edge cases."""
         from blint import _check_style_issues
-        
+
         lines = ["timeout /t 5"]  # Small number, should not trigger magic number rule
         issues = _check_style_issues("timeout /t 5", 1, lines)
         # Should only trigger S003 (command casing), not S009 (magic number)
@@ -716,9 +743,10 @@ class TestAdditionalCoverageTests:
 
     def test_main_function_directory_processing_edge_case(self) -> None:
         """Test main function with directory processing edge cases."""
-        from blint import main
         import sys
-        
+
+        from blint import main
+
         # Test with --no-recursive flag
         original_argv = sys.argv[:]
         try:
@@ -733,20 +761,22 @@ class TestAdditionalCoverageTests:
     def test_performance_issue_edge_cases(self) -> None:
         """Test performance issue detection edge cases."""
         from blint import _check_performance_issues
-        
+
         # Test temp file with random - should not trigger P007
-        issues = _check_performance_issues([""], 1, "echo content > temp_%RANDOM%.txt", False, False, False, False)
+        issues = _check_performance_issues(
+            [""], 1, "echo content > temp_%RANDOM%.txt", False, False, False, False
+        )
         p007_issues = [i for i in issues if i.rule.code == "P007"]
         assert len(p007_issues) == 0  # Should not flag when RANDOM is used
 
     def test_missing_pause_reverse_line_order(self) -> None:
         """Test _check_missing_pause finding appropriate line number."""
         from blint import _check_missing_pause
-        
+
         # Test finding the last executable line for warning
         lines = [
             "set /p answer=Continue?",
-            "echo Processing...", 
+            "echo Processing...",
             "echo More processing...",
             "rem This is a comment",  # Should skip comments
             "",  # Should skip empty lines
@@ -759,7 +789,7 @@ class TestAdditionalCoverageTests:
     def test_inconsistent_indentation_few_indented_lines(self) -> None:
         """Test inconsistent indentation with less than 2 indented lines."""
         from blint import _check_inconsistent_indentation
-        
+
         lines = [
             "echo start",
             "  echo only one indented line",
@@ -771,23 +801,24 @@ class TestAdditionalCoverageTests:
     def test_redundant_assignments_between_check(self) -> None:
         """Test redundant assignments checking logic between assignments."""
         from blint import _check_redundant_assignments
-        
+
         # Test the specific branch where assignments have no usage between them
         lines = [
             "set VAR1=first",
-            "set VAR2=other", 
+            "set VAR2=other",
             "set VAR1=second",  # Should be flagged - no usage of VAR1 between assignments
-            "set VAR1=third",   # Should also be flagged  
-            "echo %VAR1%",      # Finally used
+            "set VAR1=third",  # Should also be flagged
+            "echo %VAR1%",  # Finally used
         ]
         issues = _check_redundant_assignments(lines)
         assert len(issues) == 2  # Two redundant assignments for VAR1
 
     def test_main_function_no_path_provided(self) -> None:
         """Test main function when no path is provided."""
-        from blint import main
         import sys
-        
+
+        from blint import main
+
         original_argv = sys.argv[:]
         try:
             sys.argv = ["blint.py"]  # No path argument
@@ -799,17 +830,18 @@ class TestAdditionalCoverageTests:
 
     def test_main_function_single_file_processing(self) -> None:
         """Test main function processing single file vs directory."""
-        from blint import main
+        import os
         import sys
         import tempfile
-        import os
-        
+
+        from blint import main
+
         # Create a temporary batch file
         fd, temp_path = tempfile.mkstemp(suffix=".bat")
         try:
             os.write(fd, b"@ECHO OFF\necho Hello World\nEXIT /b 0")
             os.close(fd)
-            
+
             original_argv = sys.argv[:]
             try:
                 sys.argv = ["blint.py", temp_path]
@@ -827,7 +859,7 @@ class TestAdditionalCoverageTests:
     def test_security_admin_commands_edge_cases(self) -> None:
         """Test admin command detection edge cases."""
         from blint import _check_security_issues
-        
+
         # Test specific admin commands
         test_cases = [
             "reg add HKLM\\Software\\Test /v Value /d Data",
@@ -835,7 +867,7 @@ class TestAdditionalCoverageTests:
             "sc stop ServiceName",
             "net user testuser testpass /add",
         ]
-        
+
         for line in test_cases:
             issues = _check_security_issues(line, 1)
             sec005_issues = [i for i in issues if i.rule.code == "SEC005"]
@@ -1188,14 +1220,19 @@ class TestRuleEdgeCases:
     def create_temp_batch_file(self, content: str) -> str:
         """Create a temporary batch file with the given content."""
         import tempfile
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.bat', encoding='utf-8') as f:
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", delete=False, suffix=".bat", encoding="utf-8"
+        ) as f:
             f.write(content)
             return f.name
 
     def test_comment_style_labels_not_flagged_as_duplicates(self) -> None:
         """Test that comment-style labels (:::::::) are not flagged as duplicates."""
         import os
+
         from blint import lint_batch_file
+
         content = """@echo off
 ::::::::::::::::::::::::
 :: This is a comment
@@ -1217,7 +1254,9 @@ ECHO Hello
     def test_e003_if_incomplete_comparison(self) -> None:
         """Test E003 rule for incomplete IF statement comparisons."""
         import os
+
         from blint import lint_batch_file
+
         content = """@echo off
 IF myvar
 IF "somevalue"
@@ -1233,7 +1272,9 @@ IF "somevalue"
     def test_e011_mismatched_percent_delimiters(self) -> None:
         """Test E011 rule for mismatched percent delimiters."""
         import os
+
         from blint import lint_batch_file
+
         content = """@echo off
 ECHO This has mismatched %VAR delimiters
 SET result=%ERRORLEVEL
@@ -1249,7 +1290,9 @@ SET result=%ERRORLEVEL
     def test_e011_mismatched_exclamation_delimiters(self) -> None:
         """Test E011 rule for mismatched exclamation delimiters."""
         import os
+
         from blint import lint_batch_file
+
         content = """@echo off
 SETLOCAL ENABLEDELAYEDEXPANSION
 ECHO This has mismatched !VAR delimiters
@@ -1266,7 +1309,9 @@ SET result=!ERRORLEVEL
     def test_s014_long_parameter_list(self) -> None:
         """Test S014 rule for long parameter lists in CALL statements."""
         import os
+
         from blint import lint_batch_file
+
         content = """@echo off
 CALL :myfunction param1 param2 param3 param4 param5 param6 param7
 :myfunction
@@ -1289,14 +1334,19 @@ class TestSpecificRuleEdgeCases:
     def create_temp_batch_file(self, content: str) -> str:
         """Create a temporary batch file with the given content."""
         import tempfile
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.bat', encoding='utf-8') as f:
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", delete=False, suffix=".bat", encoding="utf-8"
+        ) as f:
             f.write(content)
             return f.name
 
     def test_if_exist_with_comparison_operator_e004(self) -> None:
         """Test E004 rule for IF EXIST syntax mixing."""
         import os
+
         from blint import lint_batch_file
+
         content = """@echo off
 IF EXIST myfile.txt == "yes" ECHO Found
 """
@@ -1311,7 +1361,9 @@ IF EXIST myfile.txt == "yes" ECHO Found
     def test_path_invalid_characters_e005(self) -> None:
         """Test E005 rule for invalid path characters."""
         import os
+
         from blint import lint_batch_file
+
         content = """@echo off
 COPY "file<test>.txt", "dest>folder",
 """
@@ -1326,7 +1378,9 @@ COPY "file<test>.txt", "dest>folder",
     def test_for_loop_missing_do_e010(self) -> None:
         """Test E010 rule for FOR loop missing DO keyword."""
         import os
+
         from blint import lint_batch_file
+
         content = """@echo off
 FOR %%i IN (1 2 3) ECHO %%i
 """
@@ -1341,7 +1395,9 @@ FOR %%i IN (1 2 3) ECHO %%i
     def test_subroutine_call_without_call_e012(self) -> None:
         """Test E012 rule for subroutine invocation without CALL."""
         import os
+
         from blint import lint_batch_file
+
         content = """@echo off
 :myfunction param1 param2
 ECHO This should trigger E012
@@ -1357,7 +1413,9 @@ ECHO This should trigger E012
     def test_magic_number_in_timeout_s009(self) -> None:
         """Test S009 rule for magic numbers in timeout commands."""
         import os
+
         from blint import lint_batch_file
+
         content = """@echo off
 TIMEOUT /T 300
 PING localhost -n 25

@@ -927,56 +927,69 @@ class TestCLIMainFunctionCoverage:
     def test_main_with_help_flag(self, capsys) -> None:
         """Test main function with --help flag."""
         from unittest.mock import patch
-        with patch('sys.argv', ['blint.py', '--help']):
+
+        with patch("sys.argv", ["blint.py", "--help"]):
             main()
-        
+
         captured = capsys.readouterr()
         assert "Batch Linter - Help Menu" in captured.out
 
     def test_main_with_no_arguments(self, capsys) -> None:
         """Test main function with no arguments."""
         from unittest.mock import patch
-        with patch('sys.argv', ['blint.py']):
+
+        with patch("sys.argv", ["blint.py"]):
             main()
-        
+
         captured = capsys.readouterr()
         assert "Batch Linter - Help Menu" in captured.out
 
     def test_main_with_nonexistent_file(self, capsys) -> None:
         """Test main function with nonexistent file."""
         from unittest.mock import patch
-        with patch('sys.argv', ['blint.py', 'nonexistent.bat']):
+
+        with patch("sys.argv", ["blint.py", "nonexistent.bat"]):
             main()
-        
+
         captured = capsys.readouterr()
         assert "Error: Path 'nonexistent.bat' not found." in captured.out
 
     def test_main_with_permission_error(self, capsys) -> None:
         """Test main function with permission error."""
         from unittest.mock import patch
+
         import blint
-        with patch('sys.argv', ['blint.py', 'protected.bat']):
-            with patch.object(blint, 'find_batch_files', side_effect=PermissionError("Access denied")):
+
+        with patch("sys.argv", ["blint.py", "protected.bat"]):
+            with patch.object(
+                blint, "find_batch_files", side_effect=PermissionError("Access denied")
+            ):
                 main()
-        
+
         captured = capsys.readouterr()
         assert "Error: Cannot access 'protected.bat'" in captured.out
 
     def test_main_with_unicode_decode_error_in_processing(self, capsys) -> None:
         """Test main function handling UnicodeDecodeError during file processing."""
-        from unittest.mock import patch
         import tempfile
+        from unittest.mock import patch
+
         import blint
+
         # Create a test file
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.bat') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".bat") as f:
             f.write("@echo off\\n")
             temp_file = f.name
 
         try:
-            with patch('sys.argv', ['blint.py', temp_file]):
-                with patch.object(blint, 'lint_batch_file', side_effect=UnicodeDecodeError('test', b'', 0, 1, 'test')):
+            with patch("sys.argv", ["blint.py", temp_file]):
+                with patch.object(
+                    blint,
+                    "lint_batch_file",
+                    side_effect=UnicodeDecodeError("test", b"", 0, 1, "test"),
+                ):
                     main()
-            
+
             captured = capsys.readouterr()
             assert "Warning: Could not read" in captured.out
             assert "due to encoding issues" in captured.out
@@ -985,19 +998,23 @@ class TestCLIMainFunctionCoverage:
 
     def test_main_with_generic_file_error_in_processing(self, capsys) -> None:
         """Test main function handling generic file errors during processing."""
-        from unittest.mock import patch
         import tempfile
+        from unittest.mock import patch
+
         import blint
+
         # Create a test file
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.bat') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".bat") as f:
             f.write("@echo off\\n")
             temp_file = f.name
 
         try:
-            with patch('sys.argv', ['blint.py', temp_file]):
-                with patch.object(blint, 'lint_batch_file', side_effect=OSError("Generic file error")):
+            with patch("sys.argv", ["blint.py", temp_file]):
+                with patch.object(
+                    blint, "lint_batch_file", side_effect=OSError("Generic file error")
+                ):
                     main()
-            
+
             captured = capsys.readouterr()
             assert "Warning: Could not process" in captured.out
         finally:
@@ -1005,32 +1022,37 @@ class TestCLIMainFunctionCoverage:
 
     def test_main_no_files_could_be_processed(self, capsys) -> None:
         """Test main function when no files can be processed."""
-        from unittest.mock import patch
         import tempfile
+        from unittest.mock import patch
+
         import blint
+
         # Create a test file that will cause processing to fail
-        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.bat') as f:
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".bat") as f:
             f.write("@echo off\\n")
             temp_file = f.name
 
         try:
-            with patch('sys.argv', ['blint.py', temp_file]):
-                with patch.object(blint, 'lint_batch_file', side_effect=ValueError("Processing error")):
+            with patch("sys.argv", ["blint.py", temp_file]):
+                with patch.object(
+                    blint, "lint_batch_file", side_effect=ValueError("Processing error")
+                ):
                     main()
-            
+
             captured = capsys.readouterr()
             assert "Error: No batch files could be processed." in captured.out
         finally:
             os.unlink(temp_file)
 
 
-# Merged from test_advanced_coverage.py  
+# Merged from test_advanced_coverage.py
 class TestDirectoryProcessingCoverage:
     """Test directory processing edge cases."""
 
     def test_find_batch_files_empty_directory(self) -> None:
         """Test find_batch_files with empty directory."""
         import tempfile
+
         with tempfile.TemporaryDirectory() as temp_dir:
             batch_files = find_batch_files(temp_dir, recursive=False)
             assert len(batch_files) == 0
@@ -1038,6 +1060,7 @@ class TestDirectoryProcessingCoverage:
     def test_find_batch_files_directory_with_mixed_files(self) -> None:
         """Test find_batch_files with directory containing mixed file types."""
         import tempfile
+
         with tempfile.TemporaryDirectory() as temp_dir:
             # Create various file types
             (Path(temp_dir) / "script.bat").write_text("@echo off\\n")
@@ -1051,10 +1074,11 @@ class TestDirectoryProcessingCoverage:
     def test_find_batch_files_recursive_vs_non_recursive(self) -> None:
         """Test find_batch_files recursive vs non-recursive behavior."""
         import tempfile
+
         with tempfile.TemporaryDirectory() as temp_dir:
             # Create files in root directory
             (Path(temp_dir) / "root.bat").write_text("@echo off\\n")
-            
+
             # Create subdirectory with files
             sub_dir = Path(temp_dir) / "subdir"
             sub_dir.mkdir()

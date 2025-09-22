@@ -839,7 +839,7 @@ GOTO :EOF
             issues = lint_batch_file(temp_file)
             rule_codes = [issue.rule.code for issue in issues]
             # Should not trigger S015 because GOTO :EOF is excluded from consistency check
-            assert "S015" not in rule_codes  
+            assert "S015" not in rule_codes
             # Should not trigger E015 because GOTO :EOF has colon
             assert "E015" not in rule_codes
         finally:

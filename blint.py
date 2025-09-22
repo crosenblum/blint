@@ -178,35 +178,50 @@ RULES: Dict[str, Rule] = {
         code="E011",
         name="Invalid variable expansion syntax",
         severity=RuleSeverity.ERROR,
-        explanation="Variable references must use proper %VAR% or !VAR! syntax with matching delimiters",
-        recommendation="Ensure variables use matching % or ! delimiters: %VAR% for standard, !VAR! for delayed expansion",
+        explanation=(
+            "Variable references must use proper %VAR% or !VAR! syntax with matching delimiters"
+        ),
+        recommendation=(
+            "Ensure variables use matching % or ! delimiters: %VAR% for standard, "
+            "!VAR! for delayed expansion"
+        ),
     ),
     "E012": Rule(
         code="E012",
         name="Missing CALL for subroutine invocation",
         severity=RuleSeverity.ERROR,
-        explanation="Subroutines should be invoked using CALL :label_name to ensure proper return handling",
+        explanation=(
+            "Subroutines should be invoked using CALL :label_name to ensure proper "
+            "return handling"
+        ),
         recommendation="Use CALL :subroutine_name instead of direct label jumps for subroutines",
     ),
     "E013": Rule(
         code="E013",
         name="Invalid command syntax detected",
         severity=RuleSeverity.ERROR,
-        explanation="Command appears to have typos or invalid syntax that will cause execution errors",
+        explanation=(
+            "Command appears to have typos or invalid syntax that will cause " "execution errors"
+        ),
         recommendation="Check command spelling and syntax: IF not IFF, ECHO not ECKO, FOR not FORx",
     ),
     "E014": Rule(
         code="E014",
         name="Missing colon in CALL statement",
         severity=RuleSeverity.ERROR,
-        explanation="CALL statements to labels require a colon (unlike GOTO where colon is optional)",
+        explanation=(
+            "CALL statements to labels require a colon (unlike GOTO where colon is optional)"
+        ),
         recommendation="Use CALL :label_name with colon when calling internal subroutines",
     ),
     "E015": Rule(
         code="E015",
         name="Missing colon in GOTO :EOF statement",
         severity=RuleSeverity.ERROR,
-        explanation="GOTO :EOF requires a colon as it's a special built-in construct, not a user-defined label",
+        explanation=(
+            "GOTO :EOF requires a colon as it's a special built-in construct, not a "
+            "user-defined label"
+        ),
         recommendation="Use GOTO :EOF (with colon) to jump to end of file",
     ),
     # Warning Level Rules (W001-W999)
@@ -305,7 +320,9 @@ RULES: Dict[str, Rule] = {
         code="W014",
         name="Missing PAUSE for user interaction",
         severity=RuleSeverity.WARNING,
-        explanation="Interactive scripts should include PAUSE to prevent window from closing immediately",
+        explanation=(
+            "Interactive scripts should include PAUSE to prevent window from " "closing immediately"
+        ),
         recommendation="Add PAUSE before EXIT to allow user to see script output",
     ),
     "W015": Rule(
@@ -319,7 +336,10 @@ RULES: Dict[str, Rule] = {
         code="W016",
         name="Mixed variable syntax within script",
         severity=RuleSeverity.WARNING,
-        explanation="Inconsistent use of %VAR% and !VAR! syntax within the same script reduces readability",
+        explanation=(
+            "Inconsistent use of %VAR% and !VAR! syntax within the same script "
+            "reduces readability"
+        ),
         recommendation="Use consistent variable expansion syntax throughout the script",
     ),
     # Style Level Rules (S001-S999)
@@ -431,8 +451,14 @@ RULES: Dict[str, Rule] = {
         code="S015",
         name="Inconsistent colon usage in GOTO statements",
         severity=RuleSeverity.STYLE,
-        explanation="GOTO statements should use consistent colon style throughout the script for better readability",
-        recommendation="Choose either 'GOTO label' or 'GOTO :label' style and use consistently throughout the script",
+        explanation=(
+            "GOTO statements should use consistent colon style throughout the script "
+            "for better readability"
+        ),
+        recommendation=(
+            "Choose either 'GOTO label' or 'GOTO :label' style and use consistently "
+            "throughout the script"
+        ),
     ),
     # Security Level Rules (SEC001-SEC999)
     "SEC001": Rule(
@@ -854,10 +880,10 @@ If no <path> is specified or '--help' is passed, this help menu will be displaye
 def _is_command_in_safe_context(line: str) -> bool:
     """
     Check if a potentially dangerous command is in a safe context (REM comment or ECHO statement).
-    
+
     Args:
         line: The line to check
-        
+
     Returns:
         True if the command is in a safe context and shouldn't be flagged as dangerous
     """
@@ -890,7 +916,7 @@ def _collect_labels(lines: List[str]) -> Tuple[Dict[str, int], List[LintIssue]]:
             # Skip comment-style labels (like :::) that contain no alphanumeric characters
             # These are commonly used as decorative comments and should not be flagged as duplicates
             label_content = label[1:]  # Remove the leading ":"
-            if not re.search(r'[a-zA-Z0-9]', label_content):
+            if not re.search(r"[a-zA-Z0-9]", label_content):
                 # This is a comment-style label like ::::::, skip it
                 continue
 
@@ -1002,7 +1028,8 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
             pass
         # Check for dynamic labels (containing variables)
         elif re.search(r"%[^%]+%|!\w+!", label_text):
-            # Dynamic labels like "label.%errorlevel%" or "label[%variable%]" can't be statically validated
+            # Dynamic labels like "label.%errorlevel%" or "label[%variable%]" can't be
+            # statically validated
             pass
         else:
             # Static label - check if it exists
@@ -1024,14 +1051,47 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
         # Check if this looks like a label call (not an external program)
         # Skip if it contains path separators, extensions, or is a known command
         builtin_commands = {
-            'dir', 'echo', 'copy', 'move', 'del', 'type', 'find', 'findstr',
-            'sort', 'more', 'cls', 'cd', 'pushd', 'popd', 'mkdir', 'rmdir',
-            'attrib', 'xcopy', 'robocopy', 'ping', 'ipconfig', 'netstat',
-            'tasklist', 'taskkill', 'sc', 'net', 'reg', 'wmic', 'powershell',
-            'timeout', 'choice', 'ver', 'vol', 'date', 'time', 'help'
+            "dir",
+            "echo",
+            "copy",
+            "move",
+            "del",
+            "type",
+            "find",
+            "findstr",
+            "sort",
+            "more",
+            "cls",
+            "cd",
+            "pushd",
+            "popd",
+            "mkdir",
+            "rmdir",
+            "attrib",
+            "xcopy",
+            "robocopy",
+            "ping",
+            "ipconfig",
+            "netstat",
+            "tasklist",
+            "taskkill",
+            "sc",
+            "net",
+            "reg",
+            "wmic",
+            "powershell",
+            "timeout",
+            "choice",
+            "ver",
+            "vol",
+            "date",
+            "time",
+            "help",
         }
-        if (not re.search(r'[\\/.:]|\.(?:bat|cmd|exe|com)$', label_text.lower()) and
-            label_text.lower() not in builtin_commands):
+        if (
+            not re.search(r"[\\/.:]|\.(?:bat|cmd|exe|com)$", label_text.lower())
+            and label_text.lower() not in builtin_commands
+        ):
             # This appears to be a label call without colon
             issues.append(
                 LintIssue(
@@ -1055,16 +1115,18 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
         # 5. IF NOT for negation
         # 6. Comparison operators: ==, EQU, NEQ, LSS, LEQ, GTR, GEQ
         valid_if_patterns = [
-            r"exist\s+",                              # IF EXIST
-            r"defined\s+",                           # IF DEFINED
-            r"errorlevel\s+\d+",                     # IF ERRORLEVEL n
-            r"/i\s+",                                # IF /I (case insensitive)
-            r"not\s+",                               # IF NOT
-            r".*\s*(==|equ|neq|lss|leq|gtr|geq)\s*", # Comparison operators
+            r"exist\s+",  # IF EXIST
+            r"defined\s+",  # IF DEFINED
+            r"errorlevel\s+\d+",  # IF ERRORLEVEL n
+            r"/i\s+",  # IF /I (case insensitive)
+            r"not\s+",  # IF NOT
+            r".*\s*(==|equ|neq|lss|leq|gtr|geq)\s*",  # Comparison operators
         ]
 
         # Check if this IF statement matches any valid pattern
-        is_valid_if = any(re.search(pattern, if_content, re.IGNORECASE) for pattern in valid_if_patterns)
+        is_valid_if = any(
+            re.search(pattern, if_content, re.IGNORECASE) for pattern in valid_if_patterns
+        )
 
         # If it doesn't match any valid pattern and seems incomplete, flag it
         if not is_valid_if and not re.search(r"[&|()]", if_content):  # Not a complex conditional
@@ -1074,7 +1136,9 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
                     LintIssue(
                         line_number=line_num,
                         rule=RULES["E003"],
-                        context="IF statement appears to be missing comparison operator or condition",
+                        context=(
+                            "IF statement appears to be missing comparison operator or condition"
+                        ),
                     )
                 )
 
@@ -1124,12 +1188,12 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
     # This is a more conservative check that only flags obvious syntax errors
 
     # Count % characters - if odd number, might have unmatched delimiter
-    percent_count = stripped.count('%')
-    exclamation_count = stripped.count('!')
+    percent_count = stripped.count("%")
+    exclamation_count = stripped.count("!")
 
     # Only flag if there's an obvious mismatch (odd number of delimiters)
     # and there appear to be variable-like patterns
-    if percent_count % 2 == 1 and re.search(r'%[A-Z0-9_]+', stripped, re.IGNORECASE):
+    if percent_count % 2 == 1 and re.search(r"%[A-Z0-9_]+", stripped, re.IGNORECASE):
         issues.append(
             LintIssue(
                 line_number=line_num,
@@ -1138,7 +1202,7 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
             )
         )
 
-    if exclamation_count % 2 == 1 and re.search(r'![A-Z0-9_]+', stripped, re.IGNORECASE):
+    if exclamation_count % 2 == 1 and re.search(r"![A-Z0-9_]+", stripped, re.IGNORECASE):
         issues.append(
             LintIssue(
                 line_number=line_num,
@@ -1166,7 +1230,9 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
             LintIssue(
                 line_number=line_num,
                 rule=RULES["E013"],
-                context=f"Command '{first_word}' appears to be a typo, did you mean '{correct_command}'?",
+                context=(
+                    f"Command '{first_word}' appears to be a typo, did you mean '{correct_command}'?"
+                ),
             )
         )
 
@@ -1264,7 +1330,9 @@ def _check_warning_issues(  # pylint: disable=unused-argument
             LintIssue(
                 line_number=line_num,
                 rule=RULES["W015"],
-                context=f"Command '{first_word}' is deprecated and may not work in newer Windows versions",
+                context=(
+                    f"Command '{first_word}' is deprecated and may not work in newer Windows versions"
+                ),
             )
         )
 
@@ -1329,7 +1397,6 @@ def _check_style_issues(
                 context=f"Line is {line_length} characters (max {max_line_length})",
             )
         )
-
 
     # S014: Long parameter list affects readability
     call_match = re.match(r"call\s+:[A-Z0-9_]+\s+(.*)", stripped, re.IGNORECASE)
@@ -1712,7 +1779,10 @@ def _check_goto_colon_consistency(lines: List[str]) -> List[LintIssue]:
             LintIssue(
                 line_number=line_num,
                 rule=RULES["S015"],
-                context=f"GOTO statement uses {current_style} but first GOTO (line {first_line}) uses {first_style}",
+                context=(
+                    f"GOTO statement uses {current_style} but first GOTO (line {first_line}) "
+                    f"uses {first_style}"
+                ),
             )
         )
 
@@ -1985,15 +2055,12 @@ def _check_missing_pause(lines: List[str]) -> List[LintIssue]:
     issues: List[LintIssue] = []
 
     has_user_input = any(
-        re.search(r"set\s+/p\s+", line, re.IGNORECASE) or
-        re.search(r"choice\s+", line, re.IGNORECASE)
+        re.search(r"set\s+/p\s+", line, re.IGNORECASE)
+        or re.search(r"choice\s+", line, re.IGNORECASE)
         for line in lines
     )
 
-    has_pause = any(
-        re.search(r"pause", line, re.IGNORECASE)
-        for line in lines
-    )
+    has_pause = any(re.search(r"pause", line, re.IGNORECASE) for line in lines)
 
     if has_user_input and not has_pause:
         # Find an appropriate line number (near the end)
@@ -2097,12 +2164,19 @@ def _check_inconsistent_indentation(lines: List[str]) -> List[LintIssue]:
             )
 
     # Check for inconsistent indentation across file
-    if uses_tabs and uses_spaces and not issues:  # Only if no single-line mixing found
+    # Only if no single-line mixing found
+    if uses_tabs and uses_spaces and not issues:
         later_line = max(first_tab_line, first_space_line)
         if first_tab_line < first_space_line:
-            context = f"File mixes tabs (line {first_tab_line}) and spaces (line {first_space_line}) for indentation"
+            context = (
+                f"File mixes tabs (line {first_tab_line}) and spaces "
+                f"(line {first_space_line}) for indentation"
+            )
         else:
-            context = f"File mixes spaces (line {first_space_line}) and tabs (line {first_tab_line}) for indentation"
+            context = (
+                f"File mixes spaces (line {first_space_line}) and tabs "
+                f"(line {first_tab_line}) for indentation"
+            )
 
         issues.append(
             LintIssue(
@@ -2128,7 +2202,10 @@ def _check_missing_documentation(lines: List[str]) -> List[LintIssue]:
         stripped = line.strip().lower()
         if stripped.startswith("rem ") and len(stripped) > 10:
             # Look for documentation indicators
-            if any(keyword in stripped for keyword in ["script:", "purpose:", "author:", "date:", "description:"]):
+            if any(
+                keyword in stripped
+                for keyword in ["script:", "purpose:", "author:", "date:", "description:"]
+            ):
                 meaningful_comments += 1
 
     if meaningful_comments == 0:
@@ -2161,7 +2238,9 @@ def _check_redundant_assignments(lines: List[str]) -> List[LintIssue]:
             var_assignments[var_name].append(i)
 
         # Track usage
-        for var_match in re.finditer(r"%([A-Za-z0-9_]+)%|!([A-Za-z0-9_]+)!", stripped, re.IGNORECASE):
+        for var_match in re.finditer(
+            r"%([A-Za-z0-9_]+)%|!([A-Za-z0-9_]+)!", stripped, re.IGNORECASE
+        ):
             var_name = (var_match.group(1) or var_match.group(2) or "").upper()
             if var_name:
                 var_usage[var_name].append(i)
@@ -2177,8 +2256,7 @@ def _check_redundant_assignments(lines: List[str]) -> List[LintIssue]:
 
                 # Check if there's any usage between assignments
                 usage_between = any(
-                    current_assignment < usage_line < next_assignment
-                    for usage_line in usage_lines
+                    current_assignment < usage_line < next_assignment for usage_line in usage_lines
                 )
 
                 if not usage_between:
