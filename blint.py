@@ -684,7 +684,9 @@ DANGEROUS_COMMANDS = [
 
 # Pattern definitions for rule matching
 DANGEROUS_COMMAND_PATTERNS: List[Tuple[str, str]] = [
-    (r"del\s+\*/\*|\*\.?\*", "SEC003"),  # del *.* type commands
+    (r"del\s+[\"']?\*\.\*[\"']?(\s|$)", "SEC003"),  # del *.* (more specific)
+    (r"del\s+[\"']?\*/\*[\"']?(\s|$)", "SEC003"),  # del */* pattern
+    (r"del\s+[\"']?[a-z]:\\\*[\"']?(\s|$)", "SEC003"),  # del c:\* type commands
     (r"format\s+[a-z]:", "SEC003"),  # format c: type commands
     (r"shutdown", "SEC003"),  # shutdown commands
     (r"rmdir\s+/s\s+/q\s+", "SEC003"),  # rmdir /s /q commands
@@ -828,6 +830,33 @@ If no <path> is specified or '--help' is passed, this help menu will be displaye
     print(help_text.strip())
 
 
+def _is_command_in_safe_context(line: str) -> bool:
+    """
+    Check if a potentially dangerous command is in a safe context (REM comment or ECHO statement).
+    
+    Args:
+        line: The line to check
+        
+    Returns:
+        True if the command is in a safe context and shouldn't be flagged as dangerous
+    """
+    stripped = line.strip().lower()
+    
+    # Check if line starts with REM (comment)
+    if stripped.startswith("rem ") or stripped.startswith("rem\t"):
+        return True
+    
+    # Check if line starts with ECHO (output statement)
+    if stripped.startswith("echo ") or stripped.startswith("echo\t"):
+        return True
+        
+    # Check for @ECHO off (common at start of scripts)
+    if stripped.startswith("@echo ") or stripped.startswith("@echo\t"):
+        return True
+        
+    return False
+
+
 def _collect_labels(lines: List[str]) -> Tuple[Dict[str, int], List[LintIssue]]:
     """Collect all labels and detect duplicates."""
     labels: Dict[str, int] = {}
@@ -836,6 +865,14 @@ def _collect_labels(lines: List[str]) -> Tuple[Dict[str, int], List[LintIssue]]:
     for i, line in enumerate(lines, start=1):
         if line.strip().startswith(":"):
             label = line.strip().lower()
+            
+            # Skip comment-style labels (like :::) that contain no alphanumeric characters
+            # These are commonly used as decorative comments and should not be flagged as duplicates
+            label_content = label[1:]  # Remove the leading ":"
+            if not re.search(r'[a-zA-Z0-9]', label_content):
+                # This is a comment-style label like ::::::, skip it
+                continue
+                
             if label in labels:
                 issues.append(
                     LintIssue(
@@ -892,6 +929,7 @@ def _collect_set_variables(lines: List[str]) -> Set[str]:
         "OS",
         "PATHEXT",
         "PROGRAMFILES",
+        "PROGRAMFILES(X86)",  # 32-bit program files on 64-bit systems
         "SYSTEMDRIVE",
         "SYSTEMROOT",
         "WINDIR",
@@ -900,6 +938,17 @@ def _collect_set_variables(lines: List[str]) -> Set[str]:
         "LOCALAPPDATA",
         "PROGRAMDATA",
         "PUBLIC",
+        # Additional commonly used environment variables
+        "PROCESSOR_LEVEL",
+        "PROCESSOR_REVISION",
+        "USERDOMAIN",
+        "USERDNSDOMAIN",
+        "SESSIONNAME",
+        "CLIENTNAME",
+        "ProgramW6432",  # 64-bit program files folder on 64-bit systems
+        "CommonProgramFiles",
+        "CommonProgramFiles(x86)",
+        "ProgramFiles(x86)",
     }
     set_vars.update(common_env_vars)
 
@@ -916,32 +965,64 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
     if goto_match:
         label_text: str = goto_match.group(1)
         target_label: str = label_text.lower()
-        if not target_label.startswith(":"):
-            target_label = ":" + target_label
-        if target_label not in labels:
-            issues.append(
-                LintIssue(
-                    line_number=line_num,
-                    rule=RULES["E002"],
-                    context=f"GOTO points to non-existent label '{label_text}'",
+        
+        # Handle special built-in labels
+        if target_label == ":eof" or target_label == "eof":
+            # :eof is a built-in construct, always valid
+            pass
+        # Check for dynamic labels (containing variables)
+        elif re.search(r"%[^%]+%|!\w+!", label_text):
+            # Dynamic labels like "label.%errorlevel%" or "label[%variable%]" can't be statically validated
+            pass
+        else:
+            # Static label - check if it exists
+            if not target_label.startswith(":"):
+                target_label = ":" + target_label
+            if target_label not in labels:
+                issues.append(
+                    LintIssue(
+                        line_number=line_num,
+                        rule=RULES["E002"],
+                        context=f"GOTO points to non-existent label '{label_text}'",
+                    )
                 )
-            )
 
     # E003: IF statement improper formatting
-    if_match = re.match(r"if\s+[^=]+$", stripped, re.IGNORECASE)
-    if (
-        if_match
-        and "exist" not in stripped.lower()
-        and "defined" not in stripped.lower()
-        and "==" not in stripped
-    ):
-        issues.append(
-            LintIssue(
-                line_number=line_num,
-                rule=RULES["E003"],
-                context="IF statement appears to be missing comparison operator",
-            )
-        )
+    # Check for IF statements that may have improper syntax
+    if_match = re.match(r"if\s+(.+)", stripped, re.IGNORECASE)
+    if if_match:
+        if_content = if_match.group(1).strip()
+        
+        # Valid IF patterns to check for:
+        # 1. IF EXIST filename
+        # 2. IF DEFINED variable
+        # 3. IF ERRORLEVEL number
+        # 4. IF /I for case insensitive
+        # 5. IF NOT for negation
+        # 6. Comparison operators: ==, EQU, NEQ, LSS, LEQ, GTR, GEQ
+        valid_if_patterns = [
+            r"exist\s+",                              # IF EXIST
+            r"defined\s+",                           # IF DEFINED
+            r"errorlevel\s+\d+",                     # IF ERRORLEVEL n
+            r"/i\s+",                                # IF /I (case insensitive)
+            r"not\s+",                               # IF NOT
+            r".*\s*(==|equ|neq|lss|leq|gtr|geq)\s*", # Comparison operators
+        ]
+        
+        # Check if this IF statement matches any valid pattern
+        is_valid_if = any(re.search(pattern, if_content, re.IGNORECASE) for pattern in valid_if_patterns)
+        
+        # If it doesn't match any valid pattern and seems incomplete, flag it
+        if not is_valid_if and not re.search(r"[&|()]", if_content):  # Not a complex conditional
+            # Only flag if it looks like an incomplete comparison (has words but no operators)
+            if re.match(r"[\"']?%?\w+%?[\"']?\s*$", if_content):
+                issues.append(
+                    LintIssue(
+                        line_number=line_num,
+                        rule=RULES["E003"],
+                        context="IF statement appears to be missing comparison operator or condition",
+                    )
+                )
 
     # E004: IF EXIST syntax mixing
     if re.match(r"if\s+exist\s+.*==.*", stripped, re.IGNORECASE):
@@ -985,25 +1066,30 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
         )
 
     # E011: Invalid variable expansion syntax
-    # Check for unmatched % or ! in variable references
-    percent_pattern = r"(?:^|[^%])%[A-Z0-9_]+(?:[^%]|$)"
-    exclamation_pattern = r"(?:^|[^!])![A-Z0-9_]+(?:[^!]|$)"
+    # Look for unmatched % or ! delimiters in variable references
+    # This is a more conservative check that only flags obvious syntax errors
     
-    if re.search(percent_pattern, stripped, re.IGNORECASE):
+    # Count % characters - if odd number, might have unmatched delimiter
+    percent_count = stripped.count('%')
+    exclamation_count = stripped.count('!')
+    
+    # Only flag if there's an obvious mismatch (odd number of delimiters)
+    # and there appear to be variable-like patterns
+    if percent_count % 2 == 1 and re.search(r'%[A-Z0-9_]+', stripped, re.IGNORECASE):
         issues.append(
             LintIssue(
                 line_number=line_num,
                 rule=RULES["E011"],
-                context="Variable reference missing closing % delimiter",
+                context="Variable reference may have mismatched % delimiters",
             )
         )
     
-    if re.search(exclamation_pattern, stripped, re.IGNORECASE):
+    if exclamation_count % 2 == 1 and re.search(r'![A-Z0-9_]+', stripped, re.IGNORECASE):
         issues.append(
             LintIssue(
                 line_number=line_num,
                 rule=RULES["E011"],
-                context="Delayed expansion variable missing closing ! delimiter",
+                context="Delayed expansion variable may have mismatched ! delimiters",
             )
         )
 
@@ -1237,16 +1323,18 @@ def _check_security_issues(line: str, line_num: int) -> List[LintIssue]:
             )
 
     # SEC003: Dangerous command without confirmation
-    for pattern, rule_code in DANGEROUS_COMMAND_PATTERNS:
-        if re.search(pattern, stripped, re.IGNORECASE):
-            issues.append(
-                LintIssue(
-                    line_number=line_num,
-                    rule=RULES[rule_code],
-                    context="Destructive command should have user confirmation",
+    # Only flag if not in a safe context (REM comment or ECHO statement)
+    if not _is_command_in_safe_context(line):
+        for pattern, rule_code in DANGEROUS_COMMAND_PATTERNS:
+            if re.search(pattern, stripped, re.IGNORECASE):
+                issues.append(
+                    LintIssue(
+                        line_number=line_num,
+                        rule=RULES[rule_code],
+                        context="Destructive command should have user confirmation",
+                    )
                 )
-            )
-            break
+                break
 
     # SEC004: Dangerous registry operation (covered by patterns above)
 
@@ -1577,12 +1665,18 @@ def _process_file_checks(  # pylint: disable=too-many-arguments,too-many-positio
     issues.extend(_check_redundant_operations(lines))
     issues.extend(_check_code_duplication(lines))
     
-    # New global checks
-    issues.extend(_check_missing_pause(lines))
-    issues.extend(_check_mixed_variable_syntax(lines))
-    issues.extend(_check_inconsistent_indentation(lines))
-    issues.extend(_check_missing_documentation(lines))
-    issues.extend(_check_redundant_assignments(lines))
+    # Global checks that depend on configuration flags
+    issues.extend(_check_missing_pause(lines))  # Warning level
+    issues.extend(_check_mixed_variable_syntax(lines))  # Warning level
+    
+    # Style-level global checks (only if style rules are enabled)
+    if enable_style_rules:
+        issues.extend(_check_inconsistent_indentation(lines))
+        issues.extend(_check_missing_documentation(lines))
+    
+    # Performance-level global checks (only if performance rules are enabled)
+    if enable_performance_rules:
+        issues.extend(_check_redundant_assignments(lines))
 
     return issues
 
