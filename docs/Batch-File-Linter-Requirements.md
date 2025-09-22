@@ -2,7 +2,7 @@
 
 ## Rule Categories Summary
 
-**Blint** provides comprehensive static analysis with **49 Built-in Rules** across 5 severity levels:
+**Blint** provides comprehensive static analysis with **67 Built-in Rules** across 5 severity levels:
 
 ### Error Level Rules (E001-E999)
 **Critical issues that will cause script failure**

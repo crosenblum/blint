@@ -11,7 +11,7 @@
 ## Features ✨
 
 ### 🔍 **Rule Coverage**
-- **49 Built-in Rules** across 5 severity levels
+- **67 Built-in Rules** across 5 severity levels
 - **Error Level (E001-E999)**: Critical syntax errors that prevent execution
 - **Warning Level (W001-W999)**: Potential runtime issues and bad practices
 - **Style Level (S001-S999)**: Code formatting and readability improvements
@@ -160,7 +160,7 @@ python blint.py ./scripts --summary
 
 ## Rule Categories 📋
 
-Blint provides comprehensive static analysis with **49 Built-in Rules** across 5 severity levels:
+Blint provides comprehensive static analysis with **67 Built-in Rules** across 5 severity levels:
 
 - **Error Level (E001-E999)**: Critical syntax errors that prevent execution
 - **Warning Level (W001-W999)**: Potential runtime issues and bad practices  
