@@ -464,3 +464,192 @@ class TestGlobalChecks:
         issues = _check_code_duplication(lines)
         duplication_issues = [i for i in issues if i.rule.code == "P002"]
         assert len(duplication_issues) == 0
+
+
+class TestRuleEdgeCases:
+    """Test edge cases in individual rules that are hard to trigger."""
+
+    def create_temp_batch_file(self, content: str) -> str:
+        """Create a temporary batch file with the given content."""
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.bat', encoding='utf-8') as f:
+            f.write(content)
+            return f.name
+
+    def test_comment_style_labels_not_flagged_as_duplicates(self) -> None:
+        """Test that comment-style labels (:::::::) are not flagged as duplicates."""
+        import os
+        from blint import lint_batch_file
+        content = """@echo off
+::::::::::::::::::::::::
+:: This is a comment
+::::::::::::::::::::::::
+ECHO Hello
+::::::::::::::::::::::::
+:: Another comment  
+::::::::::::::::::::::::
+"""
+        temp_file = self.create_temp_batch_file(content)
+        try:
+            issues = lint_batch_file(temp_file)
+            # Should not have duplicate label warnings for comment-style labels
+            duplicate_issues = [i for i in issues if i.rule.code == "W013"]
+            assert len(duplicate_issues) == 0
+        finally:
+            os.unlink(temp_file)
+
+    def test_e003_if_incomplete_comparison(self) -> None:
+        """Test E003 rule for incomplete IF statement comparisons."""
+        import os
+        from blint import lint_batch_file
+        content = """@echo off
+IF myvar
+IF "somevalue"
+"""
+        temp_file = self.create_temp_batch_file(content)
+        try:
+            issues = lint_batch_file(temp_file)
+            e003_issues = [i for i in issues if i.rule.code == "E003"]
+            assert len(e003_issues) == 2
+        finally:
+            os.unlink(temp_file)
+
+    def test_e011_mismatched_percent_delimiters(self) -> None:
+        """Test E011 rule for mismatched percent delimiters."""
+        import os
+        from blint import lint_batch_file
+        content = """@echo off
+ECHO This has mismatched %VAR delimiters
+SET result=%ERRORLEVEL
+"""
+        temp_file = self.create_temp_batch_file(content)
+        try:
+            issues = lint_batch_file(temp_file)
+            e011_issues = [i for i in issues if i.rule.code == "E011"]
+            assert len(e011_issues) == 2  # Both lines have mismatched delimiters
+        finally:
+            os.unlink(temp_file)
+
+    def test_e011_mismatched_exclamation_delimiters(self) -> None:
+        """Test E011 rule for mismatched exclamation delimiters."""
+        import os
+        from blint import lint_batch_file
+        content = """@echo off
+SETLOCAL ENABLEDELAYEDEXPANSION
+ECHO This has mismatched !VAR delimiters
+SET result=!ERRORLEVEL
+"""
+        temp_file = self.create_temp_batch_file(content)
+        try:
+            issues = lint_batch_file(temp_file)
+            e011_issues = [i for i in issues if i.rule.code == "E011"]
+            assert len(e011_issues) == 2  # Both lines have mismatched delimiters
+        finally:
+            os.unlink(temp_file)
+
+    def test_s014_long_parameter_list(self) -> None:
+        """Test S014 rule for long parameter lists in CALL statements."""
+        import os
+        from blint import lint_batch_file
+        content = """@echo off
+CALL :myfunction param1 param2 param3 param4 param5 param6 param7
+:myfunction
+ECHO Function called
+GOTO :EOF
+"""
+        temp_file = self.create_temp_batch_file(content)
+        try:
+            issues = lint_batch_file(temp_file)
+            s014_issues = [i for i in issues if i.rule.code == "S014"]
+            assert len(s014_issues) == 1
+            assert "7 parameters" in s014_issues[0].context
+        finally:
+            os.unlink(temp_file)
+
+
+class TestSpecificRuleEdgeCases:
+    """Test specific rule edge cases that are hard to trigger."""
+
+    def create_temp_batch_file(self, content: str) -> str:
+        """Create a temporary batch file with the given content."""
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.bat', encoding='utf-8') as f:
+            f.write(content)
+            return f.name
+
+    def test_if_exist_with_comparison_operator_e004(self) -> None:
+        """Test E004 rule for IF EXIST syntax mixing."""
+        import os
+        from blint import lint_batch_file
+        content = """@echo off
+IF EXIST myfile.txt == "yes" ECHO Found
+"""
+        temp_file = self.create_temp_batch_file(content)
+        try:
+            issues = lint_batch_file(temp_file)
+            e004_issues = [i for i in issues if i.rule.code == "E004"]
+            assert len(e004_issues) == 1
+        finally:
+            os.unlink(temp_file)
+
+    def test_path_invalid_characters_e005(self) -> None:
+        """Test E005 rule for invalid path characters."""
+        import os
+        from blint import lint_batch_file
+        content = """@echo off
+COPY "file<test>.txt", "dest>folder",
+"""
+        temp_file = self.create_temp_batch_file(content)
+        try:
+            issues = lint_batch_file(temp_file)
+            e005_issues = [i for i in issues if i.rule.code == "E005"]
+            assert len(e005_issues) >= 1  # Should detect invalid path characters
+        finally:
+            os.unlink(temp_file)
+
+    def test_for_loop_missing_do_e010(self) -> None:
+        """Test E010 rule for FOR loop missing DO keyword."""
+        import os
+        from blint import lint_batch_file
+        content = """@echo off
+FOR %%i IN (1 2 3) ECHO %%i
+"""
+        temp_file = self.create_temp_batch_file(content)
+        try:
+            issues = lint_batch_file(temp_file)
+            e010_issues = [i for i in issues if i.rule.code == "E010"]
+            assert len(e010_issues) == 1
+        finally:
+            os.unlink(temp_file)
+
+    def test_subroutine_call_without_call_e012(self) -> None:
+        """Test E012 rule for subroutine invocation without CALL."""
+        import os
+        from blint import lint_batch_file
+        content = """@echo off
+:myfunction param1 param2
+ECHO This should trigger E012
+"""
+        temp_file = self.create_temp_batch_file(content)
+        try:
+            issues = lint_batch_file(temp_file)
+            e012_issues = [i for i in issues if i.rule.code == "E012"]
+            assert len(e012_issues) == 1
+        finally:
+            os.unlink(temp_file)
+
+    def test_magic_number_in_timeout_s009(self) -> None:
+        """Test S009 rule for magic numbers in timeout commands."""
+        import os
+        from blint import lint_batch_file
+        content = """@echo off
+TIMEOUT /T 300
+PING localhost -n 25
+"""
+        temp_file = self.create_temp_batch_file(content)
+        try:
+            issues = lint_batch_file(temp_file)
+            s009_issues = [i for i in issues if i.rule.code == "S009"]
+            assert len(s009_issues) == 2  # Both 300 and 25 are large numbers
+        finally:
+            os.unlink(temp_file)

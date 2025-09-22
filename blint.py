@@ -774,7 +774,7 @@ DEPRECATED_COMMANDS = {"assign", "backup", "comp", "edlin", "join", "subst"}
 
 COMMON_COMMAND_TYPOS = {
     "iff": "if",
-    "ecko": "echo", 
+    "ecko": "echo",
     "ecoh": "echo",
     "forx": "for",
     "fro": "for",
@@ -797,7 +797,7 @@ CREDENTIAL_PATTERNS = [
 SENSITIVE_ECHO_PATTERNS = [
     r"echo.*password",
     r"echo.*pwd",
-    r"echo.*passwd", 
+    r"echo.*passwd",
     r"echo.*apikey",
     r"echo.*api_key",
     r"echo.*secret",
@@ -862,19 +862,19 @@ def _is_command_in_safe_context(line: str) -> bool:
         True if the command is in a safe context and shouldn't be flagged as dangerous
     """
     stripped = line.strip().lower()
-    
+
     # Check if line starts with REM (comment)
     if stripped.startswith("rem ") or stripped.startswith("rem\t"):
         return True
-    
+
     # Check if line starts with ECHO (output statement)
     if stripped.startswith("echo ") or stripped.startswith("echo\t"):
         return True
-        
+
     # Check for @ECHO off (common at start of scripts)
     if stripped.startswith("@echo ") or stripped.startswith("@echo\t"):
         return True
-        
+
     return False
 
 
@@ -886,14 +886,14 @@ def _collect_labels(lines: List[str]) -> Tuple[Dict[str, int], List[LintIssue]]:
     for i, line in enumerate(lines, start=1):
         if line.strip().startswith(":"):
             label = line.strip().lower()
-            
+
             # Skip comment-style labels (like :::) that contain no alphanumeric characters
             # These are commonly used as decorative comments and should not be flagged as duplicates
             label_content = label[1:]  # Remove the leading ":"
             if not re.search(r'[a-zA-Z0-9]', label_content):
                 # This is a comment-style label like ::::::, skip it
                 continue
-                
+
             if label in labels:
                 issues.append(
                     LintIssue(
@@ -987,7 +987,7 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
     if goto_match:
         label_text: str = goto_match.group(1)
         target_label: str = label_text.lower()
-        
+
         # E015: GOTO EOF must use colon (GOTO :EOF is required, GOTO EOF is invalid)
         if target_label == "eof":
             issues.append(
@@ -1023,7 +1023,15 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
         label_text: str = call_match.group(1)
         # Check if this looks like a label call (not an external program)
         # Skip if it contains path separators, extensions, or is a known command
-        if not re.search(r'[\\/.:]|\.(?:bat|cmd|exe|com)$', label_text.lower()):
+        builtin_commands = {
+            'dir', 'echo', 'copy', 'move', 'del', 'type', 'find', 'findstr',
+            'sort', 'more', 'cls', 'cd', 'pushd', 'popd', 'mkdir', 'rmdir',
+            'attrib', 'xcopy', 'robocopy', 'ping', 'ipconfig', 'netstat',
+            'tasklist', 'taskkill', 'sc', 'net', 'reg', 'wmic', 'powershell',
+            'timeout', 'choice', 'ver', 'vol', 'date', 'time', 'help'
+        }
+        if (not re.search(r'[\\/.:]|\.(?:bat|cmd|exe|com)$', label_text.lower()) and
+            label_text.lower() not in builtin_commands):
             # This appears to be a label call without colon
             issues.append(
                 LintIssue(
@@ -1038,7 +1046,7 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
     if_match = re.match(r"if\s+(.+)", stripped, re.IGNORECASE)
     if if_match:
         if_content = if_match.group(1).strip()
-        
+
         # Valid IF patterns to check for:
         # 1. IF EXIST filename
         # 2. IF DEFINED variable
@@ -1054,10 +1062,10 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
             r"not\s+",                               # IF NOT
             r".*\s*(==|equ|neq|lss|leq|gtr|geq)\s*", # Comparison operators
         ]
-        
+
         # Check if this IF statement matches any valid pattern
         is_valid_if = any(re.search(pattern, if_content, re.IGNORECASE) for pattern in valid_if_patterns)
-        
+
         # If it doesn't match any valid pattern and seems incomplete, flag it
         if not is_valid_if and not re.search(r"[&|()]", if_content):  # Not a complex conditional
             # Only flag if it looks like an incomplete comparison (has words but no operators)
@@ -1114,11 +1122,11 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
     # E011: Invalid variable expansion syntax
     # Look for unmatched % or ! delimiters in variable references
     # This is a more conservative check that only flags obvious syntax errors
-    
+
     # Count % characters - if odd number, might have unmatched delimiter
     percent_count = stripped.count('%')
     exclamation_count = stripped.count('!')
-    
+
     # Only flag if there's an obvious mismatch (odd number of delimiters)
     # and there appear to be variable-like patterns
     if percent_count % 2 == 1 and re.search(r'%[A-Z0-9_]+', stripped, re.IGNORECASE):
@@ -1129,7 +1137,7 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
                 context="Variable reference may have mismatched % delimiters",
             )
         )
-    
+
     if exclamation_count % 2 == 1 and re.search(r'![A-Z0-9_]+', stripped, re.IGNORECASE):
         issues.append(
             LintIssue(
@@ -1667,9 +1675,9 @@ def _check_global_style_rules(lines: List[str], file_path: str) -> List[LintIssu
 def _check_goto_colon_consistency(lines: List[str]) -> List[LintIssue]:
     """Check for consistent colon usage in GOTO statements throughout the script (S015)."""
     issues: List[LintIssue] = []
-    
+
     goto_statements = []
-    
+
     # Collect all GOTO statements (excluding GOTO :EOF which has special rules)
     for i, line in enumerate(lines, start=1):
         stripped = line.strip().lower()
@@ -1682,19 +1690,19 @@ def _check_goto_colon_consistency(lines: List[str]) -> List[LintIssue]:
                 if not re.search(r"%[^%]+%|!\w+!", label_text):
                     uses_colon = label_text.startswith(":")
                     goto_statements.append((i, label_text, uses_colon))
-    
+
     if len(goto_statements) < 2:
         # Need at least 2 GOTO statements to check consistency
         return issues
-    
+
     # Check if there's inconsistency in colon usage
     first_uses_colon = goto_statements[0][2]
     inconsistent_lines = []
-    
+
     for line_num, label, uses_colon in goto_statements[1:]:
         if uses_colon != first_uses_colon:
             inconsistent_lines.append(line_num)
-    
+
     # Flag all inconsistent occurrences
     for line_num in inconsistent_lines:
         first_line = goto_statements[0][0]
@@ -1707,7 +1715,7 @@ def _check_goto_colon_consistency(lines: List[str]) -> List[LintIssue]:
                 context=f"GOTO statement uses {current_style} but first GOTO (line {first_line}) uses {first_style}",
             )
         )
-    
+
     return issues
 
 
@@ -1760,16 +1768,16 @@ def _process_file_checks(  # pylint: disable=too-many-arguments,too-many-positio
     issues.extend(_check_unreachable_code(lines))
     issues.extend(_check_redundant_operations(lines))
     issues.extend(_check_code_duplication(lines))
-    
+
     # Global checks that depend on configuration flags
     issues.extend(_check_missing_pause(lines))  # Warning level
     issues.extend(_check_mixed_variable_syntax(lines))  # Warning level
-    
+
     # Style-level global checks (only if style rules are enabled)
     if enable_style_rules:
         issues.extend(_check_inconsistent_indentation(lines))
         issues.extend(_check_missing_documentation(lines))
-    
+
     # Performance-level global checks (only if performance rules are enabled)
     if enable_performance_rules:
         issues.extend(_check_redundant_assignments(lines))
@@ -1975,18 +1983,18 @@ def _check_code_duplication(lines: List[str]) -> List[LintIssue]:
 def _check_missing_pause(lines: List[str]) -> List[LintIssue]:
     """Check for missing PAUSE in interactive scripts (W014)."""
     issues: List[LintIssue] = []
-    
+
     has_user_input = any(
         re.search(r"set\s+/p\s+", line, re.IGNORECASE) or
         re.search(r"choice\s+", line, re.IGNORECASE)
         for line in lines
     )
-    
+
     has_pause = any(
         re.search(r"pause", line, re.IGNORECASE)
         for line in lines
     )
-    
+
     if has_user_input and not has_pause:
         # Find an appropriate line number (near the end)
         for i in range(len(lines) - 1, -1, -1):
@@ -1999,28 +2007,28 @@ def _check_missing_pause(lines: List[str]) -> List[LintIssue]:
                     )
                 )
                 break
-    
+
     return issues
 
 
 def _check_mixed_variable_syntax(lines: List[str]) -> List[LintIssue]:
     """Check for mixed variable syntax within the same script (W016)."""
     issues: List[LintIssue] = []
-    
+
     has_percent_vars = False
     has_exclamation_vars = False
     first_percent_line = 0
     first_exclamation_line = 0
-    
+
     for i, line in enumerate(lines, start=1):
         if not has_percent_vars and re.search(r"%[A-Z0-9_]+%", line, re.IGNORECASE):
             has_percent_vars = True
             first_percent_line = i
-        
+
         if not has_exclamation_vars and re.search(r"![A-Z0-9_]+!", line, re.IGNORECASE):
             has_exclamation_vars = True
             first_exclamation_line = i
-    
+
     if has_percent_vars and has_exclamation_vars:
         # Flag the second occurrence
         if first_exclamation_line > first_percent_line:
@@ -2039,14 +2047,14 @@ def _check_mixed_variable_syntax(lines: List[str]) -> List[LintIssue]:
                     context=f"Mixed variable syntax detected (delayed !VAR! used on line {first_exclamation_line})",
                 )
             )
-    
+
     return issues
 
 
 def _check_inconsistent_indentation(lines: List[str]) -> List[LintIssue]:
     """Check for inconsistent indentation patterns across the file (S012)."""
     issues: List[LintIssue] = []
-    
+
     # Track indentation patterns
     indented_lines = []
     for i, line in enumerate(lines, start=1):
@@ -2058,16 +2066,16 @@ def _check_inconsistent_indentation(lines: List[str]) -> List[LintIssue]:
                 else:
                     break
             indented_lines.append((i, leading_whitespace))
-    
+
     if len(indented_lines) < 2:
         return issues
-    
+
     # Check for mixed patterns
     uses_tabs = False
     uses_spaces = False
     first_tab_line = 0
     first_space_line = 0
-    
+
     for line_num, whitespace in indented_lines:
         if "\t" in whitespace:
             uses_tabs = True
@@ -2077,7 +2085,7 @@ def _check_inconsistent_indentation(lines: List[str]) -> List[LintIssue]:
             uses_spaces = True
             if first_space_line == 0:
                 first_space_line = line_num
-        
+
         # Also check for mixed within single line
         if "\t" in whitespace and " " in whitespace:
             issues.append(
@@ -2087,7 +2095,7 @@ def _check_inconsistent_indentation(lines: List[str]) -> List[LintIssue]:
                     context="Line mixes tabs and spaces for indentation",
                 )
             )
-    
+
     # Check for inconsistent indentation across file
     if uses_tabs and uses_spaces and not issues:  # Only if no single-line mixing found
         later_line = max(first_tab_line, first_space_line)
@@ -2095,7 +2103,7 @@ def _check_inconsistent_indentation(lines: List[str]) -> List[LintIssue]:
             context = f"File mixes tabs (line {first_tab_line}) and spaces (line {first_space_line}) for indentation"
         else:
             context = f"File mixes spaces (line {first_space_line}) and tabs (line {first_tab_line}) for indentation"
-        
+
         issues.append(
             LintIssue(
                 line_number=later_line,
@@ -2103,17 +2111,17 @@ def _check_inconsistent_indentation(lines: List[str]) -> List[LintIssue]:
                 context=context,
             )
         )
-    
+
     return issues
 
 
 def _check_missing_documentation(lines: List[str]) -> List[LintIssue]:
     """Check for missing file header documentation (S013)."""
     issues: List[LintIssue] = []
-    
+
     if len(lines) < 5:  # Skip very short files
         return issues
-    
+
     # Check first 5 lines for meaningful comments
     meaningful_comments = 0
     for line in lines[:5]:
@@ -2122,7 +2130,7 @@ def _check_missing_documentation(lines: List[str]) -> List[LintIssue]:
             # Look for documentation indicators
             if any(keyword in stripped for keyword in ["script:", "purpose:", "author:", "date:", "description:"]):
                 meaningful_comments += 1
-    
+
     if meaningful_comments == 0:
         issues.append(
             LintIssue(
@@ -2131,48 +2139,48 @@ def _check_missing_documentation(lines: List[str]) -> List[LintIssue]:
                 context="Script lacks header documentation (purpose, author, date)",
             )
         )
-    
+
     return issues
 
 
 def _check_redundant_assignments(lines: List[str]) -> List[LintIssue]:
     """Check for redundant variable assignments (P011)."""
     issues: List[LintIssue] = []
-    
+
     # Track variable assignments and usage
     var_assignments: Dict[str, List[int]] = defaultdict(list)
     var_usage: Dict[str, List[int]] = defaultdict(list)
-    
+
     for i, line in enumerate(lines, start=1):
         stripped = line.strip()
-        
+
         # Track assignments
         set_match = re.match(r"set\s+([A-Za-z0-9_]+)\s*=", stripped, re.IGNORECASE)
         if set_match:
             var_name = set_match.group(1).upper()
             var_assignments[var_name].append(i)
-        
+
         # Track usage
         for var_match in re.finditer(r"%([A-Za-z0-9_]+)%|!([A-Za-z0-9_]+)!", stripped, re.IGNORECASE):
             var_name = (var_match.group(1) or var_match.group(2) or "").upper()
             if var_name:
                 var_usage[var_name].append(i)
-    
+
     # Find redundant assignments (multiple assignments without usage in between)
     for var_name, assignment_lines in var_assignments.items():
         if len(assignment_lines) > 1:
             usage_lines = var_usage.get(var_name, [])
-            
+
             for i in range(len(assignment_lines) - 1):
                 current_assignment = assignment_lines[i]
                 next_assignment = assignment_lines[i + 1]
-                
+
                 # Check if there's any usage between assignments
                 usage_between = any(
                     current_assignment < usage_line < next_assignment
                     for usage_line in usage_lines
                 )
-                
+
                 if not usage_between:
                     issues.append(
                         LintIssue(
@@ -2181,7 +2189,7 @@ def _check_redundant_assignments(lines: List[str]) -> List[LintIssue]:
                             context=f"Variable '{var_name}' reassigned on line {next_assignment} without intermediate usage",
                         )
                     )
-    
+
     return issues
 
 

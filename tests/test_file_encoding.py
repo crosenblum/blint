@@ -322,3 +322,131 @@ class TestFileEncodingDetection:
 
         # Verify we got the "All encoding attempts failed" message
         assert "All encoding attempts failed" in str(exc_info.value)
+
+
+class TestEncodingEdgeCases:
+    """Test edge cases in file encoding detection and handling."""
+
+    def test_chardet_not_available_fallback(self) -> None:
+        """Test encoding fallback when chardet is not available."""
+        # Create a test file with UTF-8 content
+        with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.bat') as f:
+            content = "@ECHO OFF\nECHO Hello World\n"
+            f.write(content.encode('utf-8'))
+            temp_file = f.name
+
+        try:
+            # Mock chardet ImportError
+            with patch('builtins.__import__', side_effect=ImportError("No module named chardet")):
+                lines, encoding = read_file_with_encoding(temp_file)
+                assert len(lines) == 2
+                assert encoding in ['utf-8', 'utf-8-sig', 'latin1', 'cp1252', 'iso-8859-1', 'ascii']
+        finally:
+            os.unlink(temp_file)
+
+    def test_chardet_detection_error_fallback(self) -> None:
+        """Test encoding fallback when chardet detection fails."""
+        with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.bat') as f:
+            content = "@ECHO OFF\nECHO Test\n"
+            f.write(content.encode('utf-8'))
+            temp_file = f.name
+
+        try:
+            # Mock chardet.detect to raise an exception
+            with patch('chardet.detect', side_effect=ValueError("Detection failed")):
+                lines, encoding = read_file_with_encoding(temp_file)
+                assert len(lines) == 2
+                assert encoding in ['utf-8', 'utf-8-sig', 'latin1', 'cp1252', 'iso-8859-1', 'ascii']
+        finally:
+            os.unlink(temp_file)
+
+    def test_all_encoding_attempts_fail(self) -> None:
+        """Test the rare case where all encoding attempts fail."""
+        # This is very hard to trigger in practice since latin1 can decode any byte sequence
+        # We'll mock the open function to always fail
+        with patch('builtins.open', side_effect=UnicodeDecodeError('test', b'', 0, 1, 'test error')):
+            with pytest.raises(OSError, match="All encoding attempts failed"):
+                read_file_with_encoding("nonexistent.bat")
+
+    def test_encoding_lookup_error(self) -> None:
+        """Test handling of invalid encoding names."""
+        with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.bat') as f:
+            content = "@ECHO OFF\n"
+            f.write(content.encode('utf-8'))
+            temp_file = f.name
+
+        try:
+            # Test with an invalid encoding in the list by modifying the encodings list
+            # This will trigger the LookupError handling path
+            original_open = open
+            call_count = [0]
+            
+            def mock_open_with_invalid_encoding(*args, **kwargs):
+                call_count[0] += 1
+                # Let the first call (chardet) succeed
+                if 'rb' in str(args) or 'rb' in str(kwargs.get('mode', '')):
+                    return original_open(*args, **kwargs)
+                # Fail the second call with text mode
+                if call_count[0] == 2:  # First text mode call with invalid encoding
+                    raise LookupError("Invalid encoding")
+                return original_open(*args, **kwargs)
+            
+            with patch('builtins.open', side_effect=mock_open_with_invalid_encoding):
+                lines, encoding = read_file_with_encoding(temp_file)
+                assert len(lines) == 1
+        finally:
+            os.unlink(temp_file)
+
+
+class TestEncodingFallbackScenarios:
+    """Test additional encoding fallback scenarios."""
+
+    def test_chardet_low_confidence_fallback(self) -> None:
+        """Test encoding fallback when chardet has low confidence."""
+        with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.bat') as f:
+            content = "@ECHO OFF\nECHO Test\n"
+            f.write(content.encode('utf-8'))
+            temp_file = f.name
+
+        try:
+            # Mock chardet.detect to return low confidence
+            mock_result = {'encoding': 'utf-8', 'confidence': 0.5}  # Below 0.7 threshold
+            with patch('chardet.detect', return_value=mock_result):
+                lines, encoding = read_file_with_encoding(temp_file)
+                assert len(lines) == 2
+                # Should fall back to standard encoding list
+                assert encoding in ['utf-8', 'utf-8-sig', 'latin1', 'cp1252', 'iso-8859-1', 'ascii']
+        finally:
+            os.unlink(temp_file)
+
+    def test_chardet_none_result_fallback(self) -> None:
+        """Test encoding fallback when chardet returns None."""
+        with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.bat') as f:
+            content = "@ECHO OFF\nECHO Test\n"
+            f.write(content.encode('utf-8'))
+            temp_file = f.name
+
+        try:
+            # Mock chardet.detect to return None
+            with patch('chardet.detect', return_value=None):
+                lines, encoding = read_file_with_encoding(temp_file)
+                assert len(lines) == 2
+                assert encoding in ['utf-8', 'utf-8-sig', 'latin1', 'cp1252', 'iso-8859-1', 'ascii']
+        finally:
+            os.unlink(temp_file)
+
+    def test_read_file_with_encoding_no_fallback_needed(self) -> None:
+        """Test read_file_with_encoding when first encoding works (no fallback exception path)."""
+        with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='.bat') as f:
+            content = "@ECHO OFF\nECHO Test\n"
+            f.write(content.encode('utf-8'))
+            temp_file = f.name
+
+        try:
+            # This should succeed without triggering the exception path
+            lines, encoding = read_file_with_encoding(temp_file)
+            assert len(lines) == 2
+            # Encoding might be ascii if content is simple ASCII, that's fine
+            assert encoding in ['utf-8', 'ascii', 'utf-8-sig']
+        finally:
+            os.unlink(temp_file)
