@@ -562,7 +562,7 @@ class TestMainFunctionEdgeCases:
 
 
 class TestAdditionalCoverageTests:
-    """Additional tests to reach >97% coverage."""
+    """Additional tests to reach higher coverage."""
 
     def test_encoding_failure_edge_case(self) -> None:
         """Test encoding failure when no exceptions are stored."""
