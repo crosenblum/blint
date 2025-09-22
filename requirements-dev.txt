@@ -18,6 +18,7 @@ pytest-rerunfailures
 # Linting
 pylint
 mypy
+autopep8
 
 # Code Formatting
 black

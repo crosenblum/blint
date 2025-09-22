@@ -21,6 +21,10 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: Microsoft :: Windows",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Software Development :: Quality Assurance",
@@ -28,8 +32,8 @@ classifiers = [
     "Topic :: System :: Systems Administration",
     "Environment :: Console",
 ]
-requires-python = ">=3.13"
-dependencies = []
+requires-python = ">=3.9"
+dependencies = ["chardet"]
 
 [project.optional-dependencies]
 dev = [
@@ -48,6 +52,7 @@ dev = [
     # Linting
     "pylint",
     "mypy",
+    "autopep8",
     # Code Formatting
     "black",
     "isort",
@@ -71,7 +76,7 @@ version = {attr = "blint.__version__"}
 
 [tool.black]
 line-length = 100
-target-version = ['py313']
+target-version = ['py39', 'py310', 'py311', 'py312', 'py313']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
