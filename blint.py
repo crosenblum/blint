@@ -29,7 +29,7 @@ import logging
 from pathlib import Path
 import re
 import sys
-from typing import DefaultDict, Dict, List, Optional, Set, Tuple
+from typing import DefaultDict, Dict, List, Optional, Set, Tuple, Union
 import warnings
 
 __version__ = "1.0.0"
@@ -648,14 +648,16 @@ def print_help() -> None:
 Batch Linter - Help Menu
 
 Usage:
-  python blint.py <batch_file> [options]
+  python blint.py <path> [options]
 
 Arguments:
-  <batch_file>        Path to the batch (.bat or .cmd) file to lint.
+  <path>              Path to a batch file (.bat or .cmd) OR directory containing batch files.
+                     When a directory is specified, all .bat and .cmd files will be processed.
 
 Options:
   --summary           Show a summary section with total errors and most common error.
   --severity          Show error severity levels and their meaning.
+  --no-recursive      When processing directories, don't search subdirectories (default: recursive).
   --help              Display this help menu and exit.
 
 Rule Categories:
@@ -667,18 +669,21 @@ Rule Categories:
 
 Examples:
   python blint.py myscript.bat
-      Shows detailed error list with rule codes and recommendations.
+      Analyze a single batch file with detailed error list and recommendations.
+
+  python blint.py /path/to/batch/files
+      Analyze all .bat and .cmd files in directory and subdirectories.
+
+  python blint.py /path/to/batch/files --no-recursive
+      Analyze only .bat and .cmd files in the directory (no subdirectories).
 
   python blint.py myscript.cmd --summary
-      Shows summary and detailed errors.
+      Shows summary and detailed errors for a single file.
 
-  python blint.py myscript.bat --severity
-      Shows detailed errors plus error severity breakdown.
+  python blint.py /project/scripts --summary --severity
+      Shows summary, detailed errors, and severity info for all batch files in directory.
 
-  python blint.py myscript.cmd --summary --severity
-      Shows summary, detailed errors, and severity info.
-
-If no <batch_file> is specified or '--help' is passed, this help menu will be displayed.
+If no <path> is specified or '--help' is passed, this help menu will be displayed.
 """
     print(help_text.strip())
 
@@ -1674,77 +1679,199 @@ def print_severity_info(issues: List[LintIssue]) -> None:
         print(f"  {descriptions.get(severity, 'No description available.')}")
 
 
-def main() -> None:  # pylint: disable=too-many-branches
+def find_batch_files(path: Union[str, Path], recursive: bool = True) -> List[Path]:
+    """
+    Find all batch files (.bat and .cmd) in a directory or return single file.
+    
+    Args:
+        path: Path to file or directory to search
+        recursive: Whether to search subdirectories recursively (default: True)
+        
+    Returns:
+        List of Path objects representing batch files found
+        
+    Raises:
+        FileNotFoundError: If the path doesn't exist
+        ValueError: If path is not a file or directory
+    """
+    path_obj = Path(path)
+    
+    if not path_obj.exists():
+        raise FileNotFoundError(f"Path not found: {path}")
+    
+    if path_obj.is_file():
+        # Return single file if it's a batch file
+        if path_obj.suffix.lower() in ['.bat', '.cmd']:
+            return [path_obj]
+        else:
+            raise ValueError(f"File '{path}' is not a batch file (.bat or .cmd)")
+    
+    if path_obj.is_dir():
+        # Find all batch files in directory
+        batch_files: List[Path] = []
+        
+        if recursive:
+            # Recursive search
+            for pattern in ['**/*.bat', '**/*.cmd']:
+                batch_files.extend(path_obj.glob(pattern))
+        else:
+            # Non-recursive search
+            for pattern in ['*.bat', '*.cmd']:
+                batch_files.extend(path_obj.glob(pattern))
+        
+        # Sort for consistent output
+        batch_files.sort()
+        return batch_files
+    
+    raise ValueError(f"Path '{path}' is neither a file nor a directory")
+
+
+def main() -> None:  # pylint: disable=too-many-branches,too-many-statements
     """Main entry point for the blint application."""
     if len(sys.argv) < 2 or "--help" in sys.argv:
         print_help()
         return
 
-    batch_file: Optional[str] = None
+    target_path: Optional[str] = None
     show_summary = False
+    recursive = True  # Default to recursive directory search
 
     for arg in sys.argv[1:]:
-        if arg.lower().endswith((".bat", ".cmd")):
-            batch_file = arg
+        if not arg.startswith("--"):
+            # This should be the file or directory path
+            if target_path is None:
+                target_path = arg
         elif arg == "--summary":
             show_summary = True
         elif arg == "--severity":
             pass  # Severity is always shown
+        elif arg == "--no-recursive":
+            recursive = False
 
-    if not batch_file or not Path(batch_file).is_file():
-        print("Error: No valid batch file provided.\n")
+    if not target_path:
+        print("Error: No batch file or directory provided.\n")
         print_help()
         return
 
+    # Find all batch files to process
     try:
-        issues = lint_batch_file(batch_file)
-    except UnicodeDecodeError as decode_error:
-        print(f"Error: Could not read the batch file '{batch_file}' due to encoding issues:")
-        print(f"  {decode_error}")
-        print("\nTroubleshooting tips:")
-        print("  1. Ensure the file is a valid text file")
-        print("  2. Try converting the file to UTF-8 encoding")
-        print("  3. Check if the file contains binary data")
-        print("  4. For better encoding detection, install 'chardet': pip install chardet")
-        return
+        batch_files = find_batch_files(target_path, recursive=recursive)
     except FileNotFoundError:
-        print(f"Error: File '{batch_file}' not found.")
+        print(f"Error: Path '{target_path}' not found.")
         return
-    except PermissionError:
-        print(f"Error: Permission denied when trying to read '{batch_file}'.")
+    except ValueError as value_error:
+        print(f"Error: {value_error}")
         return
-    except (OSError, ValueError, TypeError) as general_error:
-        print(f"Error: Unexpected error while processing '{batch_file}': {general_error}")
+    except (OSError, PermissionError) as path_error:
+        print(f"Error: Cannot access '{target_path}': {path_error}")
         return
 
-    # Display results in new format
-    print(f"\n?? Batch File Analysis: {batch_file}")
-    print("=" * (25 + len(batch_file)))
+    if not batch_files:
+        print(f"No batch files (.bat or .cmd) found in: {target_path}")
+        return
 
-    print_detailed(issues)
+    # Process each batch file
+    all_issues: List[LintIssue] = []
+    file_results: Dict[str, List[LintIssue]] = {}
+    total_files_processed = 0
+    files_with_errors = 0
+
+    for batch_file in batch_files:
+        try:
+            issues = lint_batch_file(str(batch_file))
+            file_results[str(batch_file)] = issues
+            all_issues.extend(issues)
+            total_files_processed += 1
+            
+            if any(issue.rule.severity == RuleSeverity.ERROR for issue in issues):
+                files_with_errors += 1
+                
+        except UnicodeDecodeError as decode_error:
+            print(f"Warning: Could not read '{batch_file}' due to encoding issues: {decode_error}")
+            continue
+        except (FileNotFoundError, PermissionError, OSError, ValueError, TypeError) as file_error:
+            print(f"Warning: Could not process '{batch_file}': {file_error}")
+            continue
+
+    if total_files_processed == 0:
+        print("Error: No batch files could be processed.")
+        return
+
+    # Display results
+    is_directory = Path(target_path).is_dir()
+    
+    if is_directory:
+        print(f"\n🔍 Batch Files Analysis: {target_path}")
+        print("=" * (26 + len(target_path)))
+        print(f"Processed {total_files_processed} batch file{'s' if total_files_processed != 1 else ''}")
+        print()
+
+        # Show results for each file if there are multiple files
+        if len(file_results) > 1:
+            for file_path, issues in file_results.items():
+                relative_path = Path(file_path).relative_to(Path(target_path))
+                print(f"\n📄 File: {relative_path}")
+                print("-" * (8 + len(str(relative_path))))
+                
+                if issues:
+                    print_detailed(issues)
+                else:
+                    print("No issues found! ✅")
+                print()
+        else:
+            # Single file in directory
+            print_detailed(all_issues)
+    else:
+        # Single file processing
+        print(f"\n🔍 Batch File Analysis: {target_path}")
+        print("=" * (25 + len(target_path)))
+        print_detailed(all_issues)
+
+    # Show combined summary if processing multiple files
+    if is_directory and len(file_results) > 1:
+        print("\n📊 COMBINED RESULTS:")
+        print("===================")
 
     if show_summary:
-        print_summary(issues)
+        print_summary(all_issues)
 
-    print_severity_info(issues)
+    print_severity_info(all_issues)
 
     # Exit with appropriate code
-    error_count = sum(1 for issue in issues if issue.rule.severity == RuleSeverity.ERROR)
-    if error_count > 0:
-        print(
-            f"\n??  Found {error_count} critical "
-            f"error{'s' if error_count != 1 else ''} that must be fixed."
-        )
-        sys.exit(1)
-    elif issues:
-        print(
-            f"\n? No critical errors found, but {len(issues)} "
-            f"issue{'s' if len(issues) != 1 else ''} detected."
-        )
-        sys.exit(0)
+    error_count = sum(1 for issue in all_issues if issue.rule.severity == RuleSeverity.ERROR)
+    
+    if is_directory:
+        if error_count > 0:
+            print(
+                f"\n⚠️  Found {error_count} critical error{'s' if error_count != 1 else ''} "
+                f"across {files_with_errors} file{'s' if files_with_errors != 1 else ''} that must be fixed."
+            )
+            sys.exit(1)
+        elif all_issues:
+            print(
+                f"\n✅ No critical errors found, but {len(all_issues)} total "
+                f"issue{'s' if len(all_issues) != 1 else ''} detected across {total_files_processed} file{'s' if total_files_processed != 1 else ''}."
+            )
+            sys.exit(0)
+        else:
+            print(f"\n🎉 No issues found! All {total_files_processed} batch file{'s' if total_files_processed != 1 else ''} look{'s' if total_files_processed == 1 else ''} great!")
+            sys.exit(0)
     else:
-        print("\n?? No issues found! Your batch file looks great!")
-        sys.exit(0)
+        if error_count > 0:
+            print(
+                f"\n⚠️  Found {error_count} critical "
+                f"error{'s' if error_count != 1 else ''} that must be fixed."
+            )
+            sys.exit(1)
+        elif all_issues:
+            print(
+                f"\n✅ No critical errors found, but {len(all_issues)} "
+                f"issue{'s' if len(all_issues) != 1 else ''} detected."
+            )
+            sys.exit(0)
+        else:
+            print("\n🎉 No issues found! Your batch file looks great!")
+            sys.exit(0)
 
 
 if __name__ == "__main__":

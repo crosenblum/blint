@@ -99,7 +99,7 @@ class TestPrintFunctions:
 
         assert "Batch Linter - Help Menu" in output
         assert "Usage:" in output
-        assert "python blint.py <batch_file>" in output
+        assert "python blint.py <path>" in output
         assert "--summary" in output
         assert "--severity" in output
         assert "--help" in output

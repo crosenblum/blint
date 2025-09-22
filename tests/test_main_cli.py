@@ -10,7 +10,7 @@ from types import TracebackType
 from typing import TYPE_CHECKING, Optional, Protocol
 from unittest.mock import patch
 
-from blint import main
+from blint import main, find_batch_files
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -101,8 +101,7 @@ class TestMainFunction:
                 main()
                 output = captured.getvalue()
 
-            assert "Error: No valid batch file provided" in output
-            assert "Batch Linter - Help Menu" in output
+            assert "Error: Path 'nonexistent.bat' not found" in output
 
     def test_main_non_bat_file(self) -> None:
         """Test main function with non-.bat file."""
@@ -120,7 +119,7 @@ class TestMainFunction:
                         assert sys_exit.code in [0, 1]
                     output = captured.getvalue()
 
-                assert "Error: No valid batch file provided" in output
+                assert "not a batch file (.bat or .cmd)" in output
         finally:
             os.unlink(temp_file_path)
 
@@ -233,8 +232,7 @@ echo %var%
                 output = captured.getvalue()
 
             # The main function validates file existence before processing
-            # So this will trigger "No valid batch file provided" instead
-            assert "Error: No valid batch file provided" in output
+            assert "Error: Path" in output and "not found" in output
 
     def test_main_permission_error(self) -> None:
         """Test main function with permission error."""
@@ -251,7 +249,7 @@ echo %var%
                             assert sys_exit.code in [0, 1]
                         output = captured.getvalue()
 
-                    assert "Error: Permission denied" in output
+                    assert "Warning: Could not process" in output and "Permission denied" in output
         finally:
             if os.path.exists(temp_file):
                 os.unlink(temp_file)
@@ -274,10 +272,7 @@ echo %var%
                             assert sys_exit.code in [0, 1]
                         output = captured.getvalue()
 
-                    assert "Error: Could not read the batch file" in output
-                    assert "encoding issues" in output
-                    assert "Troubleshooting tips:" in output
-                    assert "pip install chardet" in output
+                    assert "Warning: Could not read" in output and "encoding issues" in output
         finally:
             if os.path.exists(temp_file):
                 os.unlink(temp_file)
@@ -297,8 +292,7 @@ echo %var%
                             assert sys_exit.code in [0, 1]
                         output = captured.getvalue()
 
-                    assert "Error: Unexpected error while processing" in output
-                    assert "Something went wrong" in output
+                    assert "Warning: Could not process" in output and "Something went wrong" in output
         finally:
             if os.path.exists(temp_file):
                 os.unlink(temp_file)
@@ -593,7 +587,7 @@ class TestCommandLineIntegration:
                         with patch("sys.stdout", new_callable=io.StringIO) as mock_stdout:
                             main()  # Should not raise an exception
                             output = mock_stdout.getvalue()
-                            assert "Error:" in output
+                            assert "Warning:" in output or "Error:" in output
         finally:
             if temp_file and os.path.exists(temp_file):
                 os.unlink(temp_file)
@@ -684,3 +678,252 @@ set "PROPERLY_QUOTED=safe value"
         finally:
             sys.argv = original_argv
             os.unlink(temp_file_path)
+
+
+class TestDirectoryFunctionality:
+    """Test cases for directory processing functionality."""
+
+    def create_temp_directory_with_files(self) -> str:
+        """Create a temporary directory with batch files for testing."""
+        temp_dir = tempfile.mkdtemp()
+        
+        # Create test batch files
+        test_files = {
+            "script1.bat": "@echo off\necho Hello World\n",
+            "script2.cmd": "@echo off\nset TEST=value\necho %TEST%\n",
+            "good_script.bat": "@echo off\nREM This is a clean script\necho Done\nexit /b 0\n",
+            "bad_script.bat": "echo off\ngoto nonexistent\nset UNQUOTED=value\n",
+        }
+        
+        for filename, content in test_files.items():
+            file_path = Path(temp_dir) / filename
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(content)
+        
+        # Create a subdirectory with more batch files
+        subdir = Path(temp_dir) / "subdir"
+        subdir.mkdir()
+        
+        subdirectory_files = {
+            "sub_script.bat": "@echo off\necho From subdirectory\n",
+            "another.cmd": "@echo off\nset VAR=test\n",
+        }
+        
+        for filename, content in subdirectory_files.items():
+            file_path = subdir / filename
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(content)
+        
+        # Create a non-batch file (should be ignored)
+        non_batch_file = Path(temp_dir) / "readme.txt"
+        with open(non_batch_file, "w", encoding="utf-8") as f:
+            f.write("This is not a batch file")
+        
+        return temp_dir
+
+    def cleanup_temp_directory(self, temp_dir: str) -> None:
+        """Recursively clean up temporary directory."""
+        import shutil
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+
+    def test_find_batch_files_single_file(self) -> None:
+        """Test find_batch_files with a single batch file."""
+        content = "@echo off\necho test\n"
+        
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".bat", delete=False, encoding="utf-8") as temp_file:
+            temp_file.write(content)
+            temp_file_path = temp_file.name
+
+        try:
+            result = find_batch_files(temp_file_path)
+            assert len(result) == 1
+            assert Path(result[0]) == Path(temp_file_path)
+        finally:
+            os.unlink(temp_file_path)
+
+    def test_find_batch_files_single_cmd_file(self) -> None:
+        """Test find_batch_files with a single CMD file."""
+        content = "@echo off\necho test\n"
+        
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".cmd", delete=False, encoding="utf-8") as temp_file:
+            temp_file.write(content)
+            temp_file_path = temp_file.name
+
+        try:
+            result = find_batch_files(temp_file_path)
+            assert len(result) == 1
+            assert Path(result[0]) == Path(temp_file_path)
+        finally:
+            os.unlink(temp_file_path)
+
+    def test_find_batch_files_invalid_file_type(self) -> None:
+        """Test find_batch_files with non-batch file raises error."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8") as temp_file:
+            temp_file.write("Not a batch file")
+            temp_file_path = temp_file.name
+
+        try:
+            try:
+                find_batch_files(temp_file_path)
+                assert False, "Should have raised ValueError for non-batch file"
+            except ValueError as e:
+                assert "not a batch file" in str(e)
+        finally:
+            os.unlink(temp_file_path)
+
+    def test_find_batch_files_directory_recursive(self) -> None:
+        """Test find_batch_files with directory (recursive)."""
+        temp_dir = self.create_temp_directory_with_files()
+        
+        try:
+            result = find_batch_files(temp_dir, recursive=True)
+            
+            # Should find all .bat and .cmd files including in subdirectories
+            batch_files = [f for f in result if f.suffix.lower() in ['.bat', '.cmd']]
+            assert len(batch_files) == 6  # 4 in main dir + 2 in subdir
+            
+            # Check that files from subdirectory are included
+            subdir_files = [f for f in result if 'subdir' in str(f)]
+            assert len(subdir_files) == 2
+            
+        finally:
+            self.cleanup_temp_directory(temp_dir)
+
+    def test_find_batch_files_directory_non_recursive(self) -> None:
+        """Test find_batch_files with directory (non-recursive)."""
+        temp_dir = self.create_temp_directory_with_files()
+        
+        try:
+            result = find_batch_files(temp_dir, recursive=False)
+            
+            # Should find only .bat and .cmd files in main directory
+            batch_files = [f for f in result if f.suffix.lower() in ['.bat', '.cmd']]
+            assert len(batch_files) == 4  # Only files in main dir
+            
+            # Check that no files from subdirectory are included
+            subdir_files = [f for f in result if 'subdir' in str(f)]
+            assert len(subdir_files) == 0
+            
+        finally:
+            self.cleanup_temp_directory(temp_dir)
+
+    def test_find_batch_files_nonexistent_path(self) -> None:
+        """Test find_batch_files with nonexistent path raises error."""
+        try:
+            find_batch_files("/nonexistent/path/that/does/not/exist")
+            assert False, "Should have raised FileNotFoundError"
+        except FileNotFoundError:
+            pass  # Expected
+
+    def test_main_with_directory_argument(self) -> None:
+        """Test main function with directory argument."""
+        temp_dir = self.create_temp_directory_with_files()
+        original_argv = sys.argv
+        
+        try:
+            sys.argv = ["blint.py", temp_dir]
+            
+            with self.capture_stdout() as captured:
+                try:
+                    main()
+                except SystemExit as sys_exit:
+                    assert sys_exit.code in [0, 1]  # Should exit with 0 or 1
+                
+                output = captured.getvalue()
+                
+                # Should show that multiple files were processed
+                assert "Batch Files Analysis:" in output
+                assert "Processed" in output
+                assert "file" in output  # Should mention files processed
+                
+        finally:
+            sys.argv = original_argv
+            self.cleanup_temp_directory(temp_dir)
+
+    def test_main_with_directory_and_summary(self) -> None:
+        """Test main function with directory and --summary flag."""
+        temp_dir = self.create_temp_directory_with_files()
+        original_argv = sys.argv
+        
+        try:
+            sys.argv = ["blint.py", temp_dir, "--summary"]
+            
+            with self.capture_stdout() as captured:
+                try:
+                    main()
+                except SystemExit as sys_exit:
+                    assert sys_exit.code in [0, 1]
+                
+                output = captured.getvalue()
+                
+                # Should show both directory processing and summary
+                assert "Batch Files Analysis:" in output
+                assert "SUMMARY:" in output or "COMBINED RESULTS:" in output
+                
+        finally:
+            sys.argv = original_argv
+            self.cleanup_temp_directory(temp_dir)
+
+    def test_main_with_empty_directory(self) -> None:
+        """Test main function with empty directory."""
+        temp_dir = tempfile.mkdtemp()
+        original_argv = sys.argv
+        
+        try:
+            sys.argv = ["blint.py", temp_dir]
+            
+            with self.capture_stdout() as captured:
+                main()  # Should exit without error
+                output = captured.getvalue()
+                
+                # Should indicate no batch files found
+                assert "No batch files" in output
+                
+        finally:
+            sys.argv = original_argv
+            self.cleanup_temp_directory(temp_dir)
+
+    def test_main_with_no_recursive_flag(self) -> None:
+        """Test main function with --no-recursive flag."""
+        temp_dir = self.create_temp_directory_with_files()
+        original_argv = sys.argv
+        
+        try:
+            sys.argv = ["blint.py", temp_dir, "--no-recursive"]
+            
+            with self.capture_stdout() as captured:
+                try:
+                    main()
+                except SystemExit as sys_exit:
+                    assert sys_exit.code in [0, 1]
+                
+                output = captured.getvalue()
+                
+                # Should process only main directory files (4 files)
+                # The exact number might vary based on issues found
+                assert "Batch Files Analysis:" in output
+                
+        finally:
+            sys.argv = original_argv
+            self.cleanup_temp_directory(temp_dir)
+
+    def capture_stdout(self):
+        """Helper method to capture stdout output."""
+        class StdoutCapture:
+            def __init__(self):
+                self.captured_output = None
+                self.old_stdout = None
+
+            def __enter__(self):
+                self.old_stdout = sys.stdout
+                sys.stdout = self.captured_output = io.StringIO()
+                return self
+
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                sys.stdout = self.old_stdout
+
+            def getvalue(self):
+                return self.captured_output.getvalue() if self.captured_output else ""
+
+        return StdoutCapture()

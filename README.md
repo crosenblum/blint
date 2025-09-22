@@ -64,8 +64,14 @@ pip install -r requirements.txt
 ### Basic Usage
 
 ```cmd
-# Analyze a batch file
+# Analyze a single batch file
 python blint.py script.bat
+
+# Analyze all batch files in a directory (recursive)
+python blint.py /path/to/batch/files
+
+# Analyze batch files in directory only (non-recursive)
+python blint.py /path/to/batch/files --no-recursive
 
 # Analyze with summary
 python blint.py script.bat --summary
@@ -76,9 +82,10 @@ python blint.py --help
 
 ### Command Line Options
 
-- `<batch_file>`: Path to the `.bat` or `.cmd` file to analyze
+- `<path>`: Path to a batch file (`.bat` or `.cmd`) OR directory containing batch files
 - `--summary`: Display summary statistics of issues found
 - `--severity`: Show detailed severity level breakdown (always included)
+- `--no-recursive`: When processing directories, only analyze files in the specified directory (not subdirectories)
 - `--help`: Show help menu and rule categories
 
 ### 🐍 **Programmatic API Usage**
@@ -128,6 +135,28 @@ with ThreadPoolExecutor(max_workers=4) as executor:
 - `.cmd` files (recommended for modern Windows)
 - **Unicode filenames** and international characters supported
 - **Large files** (10MB+) handled efficiently with performance monitoring
+
+### 📁 **Directory Processing**
+
+Blint can analyze entire directories of batch files with powerful options:
+
+- **Recursive Analysis**: Automatically finds and processes all `.bat` and `.cmd` files in directories and subdirectories
+- **Non-Recursive Mode**: Use `--no-recursive` to analyze only files in the specified directory
+- **Batch Processing**: Handles multiple files efficiently with consolidated reporting
+- **Error Resilience**: Continues processing other files even if some files have encoding or permission issues
+- **Progress Tracking**: Shows detailed results for each file plus combined summary statistics
+
+**Examples:**
+```cmd
+# Analyze all batch files in project directory and subdirectories
+python blint.py ./my-batch-scripts
+
+# Analyze only batch files in current directory (no subdirectories)  
+python blint.py . --no-recursive
+
+# Get combined summary for entire directory
+python blint.py ./scripts --summary
+```
 
 ## Rule Categories 📋
 
