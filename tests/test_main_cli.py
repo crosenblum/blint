@@ -8,7 +8,7 @@ import subprocess
 import sys
 import tempfile
 from types import TracebackType
-from typing import TYPE_CHECKING, Optional, Protocol
+from typing import Any, TYPE_CHECKING, Optional, Protocol, TextIO
 from unittest.mock import patch
 
 from blint import main, find_batch_files
@@ -35,36 +35,36 @@ class StdoutCaptureProtocol(Protocol):
         """Get the captured stdout output."""
 
 
+class StdoutCapture:
+    """Context manager for capturing stdout output during tests."""
+
+    def __init__(self) -> None:
+        self.captured_output: Optional[io.StringIO] = None
+        self.old_stdout: Optional[TextIO] = None
+
+    def __enter__(self) -> "StdoutCapture":
+        self.old_stdout = sys.stdout
+        sys.stdout = self.captured_output = io.StringIO()
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
+        sys.stdout = self.old_stdout
+
+    def getvalue(self) -> str:
+        """Get the captured stdout output."""
+        return self.captured_output.getvalue() if self.captured_output else ""
+
+
 class TestMainFunction:
     """Test cases for the main function and CLI interface."""
 
-    def capture_stdout(self) -> StdoutCaptureProtocol:
+    def capture_stdout(self) -> StdoutCapture:
         """Context manager to capture stdout output."""
-
-        class StdoutCapture:
-            """Context manager for capturing stdout output."""
-
-            def __init__(self) -> None:
-                self.captured_output: Optional[io.StringIO] = None
-                self.old_stdout: object = None
-
-            def __enter__(self) -> "StdoutCapture":
-                self.old_stdout = sys.stdout
-                sys.stdout = self.captured_output = io.StringIO()
-                return self
-
-            def __exit__(
-                self,
-                exc_type: Optional[type[BaseException]],
-                exc_val: Optional[BaseException],
-                exc_tb: Optional[TracebackType],
-            ) -> None:
-                sys.stdout = self.old_stdout
-
-            def getvalue(self) -> str:
-                """Get the captured stdout output."""
-                return self.captured_output.getvalue() if self.captured_output else ""
-
         return StdoutCapture()
 
     def create_temp_batch_file(self, content: str) -> str:
@@ -915,25 +915,6 @@ class TestDirectoryFunctionality:
             sys.argv = original_argv
             self.cleanup_temp_directory(temp_dir)
 
-    def capture_stdout(self):
+    def capture_stdout(self) -> StdoutCapture:
         """Helper method to capture stdout output."""
-        class StdoutCapture:
-            """Context manager for capturing stdout during tests."""
-
-            def __init__(self):
-                self.captured_output = None
-                self.old_stdout = None
-
-            def __enter__(self):
-                self.old_stdout = sys.stdout
-                sys.stdout = self.captured_output = io.StringIO()
-                return self
-
-            def __exit__(self, exc_type, exc_val, exc_tb):
-                sys.stdout = self.old_stdout
-
-            def getvalue(self):
-                """Get the captured output value."""
-                return self.captured_output.getvalue() if self.captured_output else ""
-
         return StdoutCapture()
