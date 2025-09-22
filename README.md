@@ -33,7 +33,7 @@
 - **Cross-Platform Compatibility**: Warns about Windows version issues
 - **Thread-Safe Design**: Safe for concurrent usage with immutable rules and local state
 - **Large File Handling**: Efficiently processes files up to 10MB+ with performance warnings
-- **Robust Encoding Detection**: Handles UTF-8, UTF-16, Latin-1, and 9+ encoding formats
+- **Robust Encoding Detection**: Handles UTF-8, UTF-16, Latin-1, and 6 more encoding formats
 
 ## Installation 🛠️
 
