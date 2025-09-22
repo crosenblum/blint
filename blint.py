@@ -2259,7 +2259,7 @@ def _check_redundant_assignments(lines: List[str]) -> List[LintIssue]:
             r"%([A-Za-z0-9_]+)%|!([A-Za-z0-9_]+)!", stripped, re.IGNORECASE
         ):
             var_name_part1: Optional[str] = var_match.group(1)
-            var_name_part2: Optional[str] = var_match.group(2) 
+            var_name_part2: Optional[str] = var_match.group(2)
             used_var_name: str = (var_name_part1 or var_name_part2 or "").upper()
             if used_var_name:
                 var_usage[used_var_name].append(i)
