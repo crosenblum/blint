@@ -8,10 +8,10 @@ import subprocess
 import sys
 import tempfile
 from types import TracebackType
-from typing import Any, TYPE_CHECKING, Optional, Protocol, TextIO
+from typing import TYPE_CHECKING, Any, Optional, Protocol, TextIO
 from unittest.mock import patch
 
-from blint import main, find_batch_files
+from blint import find_batch_files, main
 
 if TYPE_CHECKING:
     from typing_extensions import Self
@@ -787,11 +787,11 @@ class TestDirectoryFunctionality:
             result = find_batch_files(temp_dir, recursive=True)
 
             # Should find all .bat and .cmd files including in subdirectories
-            batch_files = [f for f in result if f.suffix.lower() in ['.bat', '.cmd']]
+            batch_files = [f for f in result if f.suffix.lower() in [".bat", ".cmd"]]
             assert len(batch_files) == 6  # 4 in main dir + 2 in subdir
 
             # Check that files from subdirectory are included
-            subdir_files = [f for f in result if 'subdir' in str(f)]
+            subdir_files = [f for f in result if "subdir" in str(f)]
             assert len(subdir_files) == 2
 
         finally:
@@ -805,11 +805,11 @@ class TestDirectoryFunctionality:
             result = find_batch_files(temp_dir, recursive=False)
 
             # Should find only .bat and .cmd files in main directory
-            batch_files = [f for f in result if f.suffix.lower() in ['.bat', '.cmd']]
+            batch_files = [f for f in result if f.suffix.lower() in [".bat", ".cmd"]]
             assert len(batch_files) == 4  # Only files in main dir
 
             # Check that no files from subdirectory are included
-            subdir_files = [f for f in result if 'subdir' in str(f)]
+            subdir_files = [f for f in result if "subdir" in str(f)]
             assert len(subdir_files) == 0
 
         finally:

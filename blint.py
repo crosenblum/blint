@@ -1682,14 +1682,14 @@ def print_severity_info(issues: List[LintIssue]) -> None:
 def find_batch_files(path: Union[str, Path], recursive: bool = True) -> List[Path]:
     """
     Find all batch files (.bat and .cmd) in a directory or return single file.
-    
+
     Args:
         path: Path to file or directory to search
         recursive: Whether to search subdirectories recursively (default: True)
-        
+
     Returns:
         List of Path objects representing batch files found
-        
+
     Raises:
         FileNotFoundError: If the path doesn't exist
         ValueError: If path is not a file or directory
@@ -1701,7 +1701,7 @@ def find_batch_files(path: Union[str, Path], recursive: bool = True) -> List[Pat
 
     if path_obj.is_file():
         # Return single file if it's a batch file
-        if path_obj.suffix.lower() in ['.bat', '.cmd']:
+        if path_obj.suffix.lower() in [".bat", ".cmd"]:
             return [path_obj]
         raise ValueError(f"File '{path}' is not a batch file (.bat or .cmd)")
 
@@ -1711,11 +1711,11 @@ def find_batch_files(path: Union[str, Path], recursive: bool = True) -> List[Pat
 
         if recursive:
             # Recursive search
-            for pattern in ['**/*.bat', '**/*.cmd']:
+            for pattern in ["**/*.bat", "**/*.cmd"]:
                 batch_files.extend(path_obj.glob(pattern))
         else:
             # Non-recursive search
-            for pattern in ['*.bat', '*.cmd']:
+            for pattern in ["*.bat", "*.cmd"]:
                 batch_files.extend(path_obj.glob(pattern))
 
         # Sort for consistent output
@@ -1725,7 +1725,9 @@ def find_batch_files(path: Union[str, Path], recursive: bool = True) -> List[Pat
     raise ValueError(f"Path '{path}' is neither a file nor a directory")
 
 
-def main() -> None:  # pylint: disable=too-many-branches,too-many-statements,too-many-locals,too-many-return-statements
+def main() -> (
+    None
+):  # pylint: disable=too-many-branches,too-many-statements,too-many-locals,too-many-return-statements
     """Main entry point for the blint application."""
     if len(sys.argv) < 2 or "--help" in sys.argv:
         print_help()
