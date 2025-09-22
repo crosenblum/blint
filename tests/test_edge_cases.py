@@ -244,9 +244,7 @@ class TestStyleIssueChecking:
 
     def test_long_parameter_list(self) -> None:
         """Test long parameter list detection."""
-        issues = _check_style_issues(
-            "CALL :myfunc param1 param2 param3 param4 param5 param6", 1
-        )
+        issues = _check_style_issues("CALL :myfunc param1 param2 param3 param4 param5 param6", 1)
         assert len(issues) == 1
         assert "S014" in issues[0].rule.code
 
