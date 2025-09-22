@@ -1,5 +1,9 @@
 """Tests for edge cases and missing coverage areas."""
 
+# pylint: disable=too-many-lines,import-outside-toplevel,redefined-outer-name,reimported
+# pylint: disable=unused-argument,invalid-name,missing-class-docstring,too-few-public-methods
+# pylint: disable=unused-variable,unused-import
+
 from unittest.mock import mock_open, patch
 
 import pytest

@@ -1002,7 +1002,9 @@ def _collect_set_variables(lines: List[str]) -> Set[str]:
     return set_vars
 
 
-def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> List[LintIssue]:
+def _check_syntax_errors(  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+    line: str, line_num: int, labels: Dict[str, int]
+) -> List[LintIssue]:
     """Check for syntax error level issues."""
     issues: List[LintIssue] = []
     stripped = line.strip()
@@ -1231,7 +1233,8 @@ def _check_syntax_errors(line: str, line_num: int, labels: Dict[str, int]) -> Li
                 line_number=line_num,
                 rule=RULES["E013"],
                 context=(
-                    f"Command '{first_word}' appears to be a typo, did you mean '{correct_command}'?"
+                    f"Command '{first_word}' appears to be a typo, "
+                    f"did you mean '{correct_command}'?"
                 ),
             )
         )
@@ -1331,7 +1334,8 @@ def _check_warning_issues(  # pylint: disable=unused-argument
                 line_number=line_num,
                 rule=RULES["W015"],
                 context=(
-                    f"Command '{first_word}' is deprecated and may not work in newer Windows versions"
+                    f"Command '{first_word}' is deprecated and may not work "
+                    f"in newer Windows versions"
                 ),
             )
         )
@@ -1342,7 +1346,6 @@ def _check_warning_issues(  # pylint: disable=unused-argument
 def _check_style_issues(
     line: str,
     line_num: int,
-    file_lines: List[str],
     max_line_length: int = 120,
 ) -> List[LintIssue]:
     """Check for style level issues."""
@@ -1414,7 +1417,9 @@ def _check_style_issues(
     return issues
 
 
-def _check_security_issues(line: str, line_num: int) -> List[LintIssue]:
+def _check_security_issues(  # pylint: disable=too-many-branches
+    line: str, line_num: int
+) -> List[LintIssue]:
     """Check for security level issues."""
     issues: List[LintIssue] = []
     stripped = line.strip()
@@ -1739,7 +1744,9 @@ def _check_global_style_rules(lines: List[str], file_path: str) -> List[LintIssu
     return issues
 
 
-def _check_goto_colon_consistency(lines: List[str]) -> List[LintIssue]:
+def _check_goto_colon_consistency(  # pylint: disable=too-many-locals
+    lines: List[str],
+) -> List[LintIssue]:
     """Check for consistent colon usage in GOTO statements throughout the script (S015)."""
     issues: List[LintIssue] = []
 
@@ -1766,7 +1773,7 @@ def _check_goto_colon_consistency(lines: List[str]) -> List[LintIssue]:
     first_uses_colon = goto_statements[0][2]
     inconsistent_lines = []
 
-    for line_num, label, uses_colon in goto_statements[1:]:
+    for line_num, _label, uses_colon in goto_statements[1:]:
         if uses_colon != first_uses_colon:
             inconsistent_lines.append(line_num)
 
@@ -1814,7 +1821,7 @@ def _process_file_checks(  # pylint: disable=too-many-arguments,too-many-positio
 
         # Style level checks (if enabled)
         if enable_style_rules:
-            style_issues = _check_style_issues(line, i, lines, max_line_length)
+            style_issues = _check_style_issues(line, i, max_line_length)
             issues.extend(style_issues)
 
         # Security level checks (always enabled for safety)
@@ -2103,7 +2110,10 @@ def _check_mixed_variable_syntax(lines: List[str]) -> List[LintIssue]:
                 LintIssue(
                     line_number=first_exclamation_line,
                     rule=RULES["W016"],
-                    context=f"Mixed variable syntax detected (standard %VAR% used on line {first_percent_line})",
+                    context=(
+                        f"Mixed variable syntax detected "
+                        f"(standard %VAR% used on line {first_percent_line})"
+                    ),
                 )
             )
         else:
@@ -2111,14 +2121,19 @@ def _check_mixed_variable_syntax(lines: List[str]) -> List[LintIssue]:
                 LintIssue(
                     line_number=first_percent_line,
                     rule=RULES["W016"],
-                    context=f"Mixed variable syntax detected (delayed !VAR! used on line {first_exclamation_line})",
+                    context=(
+                        f"Mixed variable syntax detected "
+                        f"(delayed !VAR! used on line {first_exclamation_line})"
+                    ),
                 )
             )
 
     return issues
 
 
-def _check_inconsistent_indentation(lines: List[str]) -> List[LintIssue]:
+def _check_inconsistent_indentation(  # pylint: disable=too-many-branches
+    lines: List[str],
+) -> List[LintIssue]:
     """Check for inconsistent indentation patterns across the file (S012)."""
     issues: List[LintIssue] = []
 
@@ -2264,7 +2279,10 @@ def _check_redundant_assignments(lines: List[str]) -> List[LintIssue]:
                         LintIssue(
                             line_number=current_assignment,
                             rule=RULES["P011"],
-                            context=f"Variable '{var_name}' reassigned on line {next_assignment} without intermediate usage",
+                            context=(
+                                f"Variable '{var_name}' reassigned on line {next_assignment} "
+                                f"without intermediate usage"
+                            ),
                         )
                     )
 

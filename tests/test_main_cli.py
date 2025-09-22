@@ -1,5 +1,7 @@
 """Tests for main function and command-line interface."""
 
+# pylint: disable=too-many-lines,import-outside-toplevel,redefined-outer-name,reimported
+
 import io
 import os
 from pathlib import Path
@@ -603,7 +605,7 @@ import tempfile
 import os
 
 # Create a test batch file
-with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as f:
+with tempfile.NamedTemporaryFile(mode='w', suffix='.bat', delete=False) as temp_file_handle:
     f.write('@echo off\\necho test')
     test_file = f.name
 
@@ -926,8 +928,6 @@ class TestCLIMainFunctionCoverage:
 
     def test_main_with_help_flag(self, capsys) -> None:
         """Test main function with --help flag."""
-        from unittest.mock import patch
-
         with patch("sys.argv", ["blint.py", "--help"]):
             main()
 
@@ -936,8 +936,6 @@ class TestCLIMainFunctionCoverage:
 
     def test_main_with_no_arguments(self, capsys) -> None:
         """Test main function with no arguments."""
-        from unittest.mock import patch
-
         with patch("sys.argv", ["blint.py"]):
             main()
 
@@ -946,8 +944,6 @@ class TestCLIMainFunctionCoverage:
 
     def test_main_with_nonexistent_file(self, capsys) -> None:
         """Test main function with nonexistent file."""
-        from unittest.mock import patch
-
         with patch("sys.argv", ["blint.py", "nonexistent.bat"]):
             main()
 
@@ -956,8 +952,6 @@ class TestCLIMainFunctionCoverage:
 
     def test_main_with_permission_error(self, capsys) -> None:
         """Test main function with permission error."""
-        from unittest.mock import patch
-
         import blint
 
         with patch("sys.argv", ["blint.py", "protected.bat"]):
@@ -971,15 +965,12 @@ class TestCLIMainFunctionCoverage:
 
     def test_main_with_unicode_decode_error_in_processing(self, capsys) -> None:
         """Test main function handling UnicodeDecodeError during file processing."""
-        import tempfile
-        from unittest.mock import patch
-
         import blint
 
         # Create a test file
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".bat") as f:
-            f.write("@echo off\\n")
-            temp_file = f.name
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".bat") as temp_file_handle:
+            temp_file_handle.write("@echo off\\n")
+            temp_file = temp_file_handle.name
 
         try:
             with patch("sys.argv", ["blint.py", temp_file]):
@@ -998,15 +989,12 @@ class TestCLIMainFunctionCoverage:
 
     def test_main_with_generic_file_error_in_processing(self, capsys) -> None:
         """Test main function handling generic file errors during processing."""
-        import tempfile
-        from unittest.mock import patch
-
         import blint
 
         # Create a test file
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".bat") as f:
-            f.write("@echo off\\n")
-            temp_file = f.name
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".bat") as temp_file_handle:
+            temp_file_handle.write("@echo off\\n")
+            temp_file = temp_file_handle.name
 
         try:
             with patch("sys.argv", ["blint.py", temp_file]):
@@ -1022,15 +1010,12 @@ class TestCLIMainFunctionCoverage:
 
     def test_main_no_files_could_be_processed(self, capsys) -> None:
         """Test main function when no files can be processed."""
-        import tempfile
-        from unittest.mock import patch
-
         import blint
 
         # Create a test file that will cause processing to fail
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".bat") as f:
-            f.write("@echo off\\n")
-            temp_file = f.name
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".bat") as temp_file_handle:
+            temp_file_handle.write("@echo off\\n")
+            temp_file = temp_file_handle.name
 
         try:
             with patch("sys.argv", ["blint.py", temp_file]):

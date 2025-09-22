@@ -330,10 +330,12 @@ class TestEncodingEdgeCases:
     def test_chardet_not_available_fallback(self) -> None:
         """Test encoding fallback when chardet is not available."""
         # Create a test file with UTF-8 content
-        with tempfile.NamedTemporaryFile(mode="wb", delete=False, suffix=".bat") as f:
+        with tempfile.NamedTemporaryFile(
+            mode="wb", delete=False, suffix=".bat"
+        ) as temp_file_handle:
             content = "@ECHO OFF\nECHO Hello World\n"
-            f.write(content.encode("utf-8"))
-            temp_file = f.name
+            temp_file_handle.write(content.encode("utf-8"))
+            temp_file = temp_file_handle.name
 
         try:
             # Mock chardet ImportError
@@ -346,10 +348,12 @@ class TestEncodingEdgeCases:
 
     def test_chardet_detection_error_fallback(self) -> None:
         """Test encoding fallback when chardet detection fails."""
-        with tempfile.NamedTemporaryFile(mode="wb", delete=False, suffix=".bat") as f:
+        with tempfile.NamedTemporaryFile(
+            mode="wb", delete=False, suffix=".bat"
+        ) as temp_file_handle:
             content = "@ECHO OFF\nECHO Test\n"
-            f.write(content.encode("utf-8"))
-            temp_file = f.name
+            temp_file_handle.write(content.encode("utf-8"))
+            temp_file = temp_file_handle.name
 
         try:
             # Mock chardet.detect to raise an exception
@@ -372,10 +376,12 @@ class TestEncodingEdgeCases:
 
     def test_encoding_lookup_error(self) -> None:
         """Test handling of invalid encoding names."""
-        with tempfile.NamedTemporaryFile(mode="wb", delete=False, suffix=".bat") as f:
+        with tempfile.NamedTemporaryFile(
+            mode="wb", delete=False, suffix=".bat"
+        ) as temp_file_handle:
             content = "@ECHO OFF\n"
-            f.write(content.encode("utf-8"))
-            temp_file = f.name
+            temp_file_handle.write(content.encode("utf-8"))
+            temp_file = temp_file_handle.name
 
         try:
             # Test with an invalid encoding in the list by modifying the encodings list
@@ -394,7 +400,7 @@ class TestEncodingEdgeCases:
                 return original_open(*args, **kwargs)
 
             with patch("builtins.open", side_effect=mock_open_with_invalid_encoding):
-                lines, encoding = read_file_with_encoding(temp_file)
+                lines, _encoding = read_file_with_encoding(temp_file)
                 assert len(lines) == 1
         finally:
             os.unlink(temp_file)
@@ -405,10 +411,12 @@ class TestEncodingFallbackScenarios:
 
     def test_chardet_low_confidence_fallback(self) -> None:
         """Test encoding fallback when chardet has low confidence."""
-        with tempfile.NamedTemporaryFile(mode="wb", delete=False, suffix=".bat") as f:
+        with tempfile.NamedTemporaryFile(
+            mode="wb", delete=False, suffix=".bat"
+        ) as temp_file_handle:
             content = "@ECHO OFF\nECHO Test\n"
-            f.write(content.encode("utf-8"))
-            temp_file = f.name
+            temp_file_handle.write(content.encode("utf-8"))
+            temp_file = temp_file_handle.name
 
         try:
             # Mock chardet.detect to return low confidence
@@ -423,10 +431,12 @@ class TestEncodingFallbackScenarios:
 
     def test_chardet_none_result_fallback(self) -> None:
         """Test encoding fallback when chardet returns None."""
-        with tempfile.NamedTemporaryFile(mode="wb", delete=False, suffix=".bat") as f:
+        with tempfile.NamedTemporaryFile(
+            mode="wb", delete=False, suffix=".bat"
+        ) as temp_file_handle:
             content = "@ECHO OFF\nECHO Test\n"
-            f.write(content.encode("utf-8"))
-            temp_file = f.name
+            temp_file_handle.write(content.encode("utf-8"))
+            temp_file = temp_file_handle.name
 
         try:
             # Mock chardet.detect to return None
@@ -439,10 +449,12 @@ class TestEncodingFallbackScenarios:
 
     def test_read_file_with_encoding_no_fallback_needed(self) -> None:
         """Test read_file_with_encoding when first encoding works (no fallback exception path)."""
-        with tempfile.NamedTemporaryFile(mode="wb", delete=False, suffix=".bat") as f:
+        with tempfile.NamedTemporaryFile(
+            mode="wb", delete=False, suffix=".bat"
+        ) as temp_file_handle:
             content = "@ECHO OFF\nECHO Test\n"
-            f.write(content.encode("utf-8"))
-            temp_file = f.name
+            temp_file_handle.write(content.encode("utf-8"))
+            temp_file = temp_file_handle.name
 
         try:
             # This should succeed without triggering the exception path
