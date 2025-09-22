@@ -1695,21 +1695,20 @@ def find_batch_files(path: Union[str, Path], recursive: bool = True) -> List[Pat
         ValueError: If path is not a file or directory
     """
     path_obj = Path(path)
-    
+
     if not path_obj.exists():
         raise FileNotFoundError(f"Path not found: {path}")
-    
+
     if path_obj.is_file():
         # Return single file if it's a batch file
         if path_obj.suffix.lower() in ['.bat', '.cmd']:
             return [path_obj]
-        else:
-            raise ValueError(f"File '{path}' is not a batch file (.bat or .cmd)")
-    
+        raise ValueError(f"File '{path}' is not a batch file (.bat or .cmd)")
+
     if path_obj.is_dir():
         # Find all batch files in directory
         batch_files: List[Path] = []
-        
+
         if recursive:
             # Recursive search
             for pattern in ['**/*.bat', '**/*.cmd']:
@@ -1718,15 +1717,15 @@ def find_batch_files(path: Union[str, Path], recursive: bool = True) -> List[Pat
             # Non-recursive search
             for pattern in ['*.bat', '*.cmd']:
                 batch_files.extend(path_obj.glob(pattern))
-        
+
         # Sort for consistent output
         batch_files.sort()
         return batch_files
-    
+
     raise ValueError(f"Path '{path}' is neither a file nor a directory")
 
 
-def main() -> None:  # pylint: disable=too-many-branches,too-many-statements
+def main() -> None:  # pylint: disable=too-many-branches,too-many-statements,too-many-locals,too-many-return-statements
     """Main entry point for the blint application."""
     if len(sys.argv) < 2 or "--help" in sys.argv:
         print_help()
@@ -1782,10 +1781,10 @@ def main() -> None:  # pylint: disable=too-many-branches,too-many-statements
             file_results[str(batch_file)] = issues
             all_issues.extend(issues)
             total_files_processed += 1
-            
+
             if any(issue.rule.severity == RuleSeverity.ERROR for issue in issues):
                 files_with_errors += 1
-                
+
         except UnicodeDecodeError as decode_error:
             print(f"Warning: Could not read '{batch_file}' due to encoding issues: {decode_error}")
             continue
@@ -1799,11 +1798,12 @@ def main() -> None:  # pylint: disable=too-many-branches,too-many-statements
 
     # Display results
     is_directory = Path(target_path).is_dir()
-    
+
     if is_directory:
         print(f"\n🔍 Batch Files Analysis: {target_path}")
         print("=" * (26 + len(target_path)))
-        print(f"Processed {total_files_processed} batch file{'s' if total_files_processed != 1 else ''}")
+        file_count_text = "s" if total_files_processed != 1 else ""
+        print(f"Processed {total_files_processed} batch file{file_count_text}")
         print()
 
         # Show results for each file if there are multiple files
@@ -1812,7 +1812,7 @@ def main() -> None:  # pylint: disable=too-many-branches,too-many-statements
                 relative_path = Path(file_path).relative_to(Path(target_path))
                 print(f"\n📄 File: {relative_path}")
                 print("-" * (8 + len(str(relative_path))))
-                
+
                 if issues:
                     print_detailed(issues)
                 else:
@@ -1839,22 +1839,31 @@ def main() -> None:  # pylint: disable=too-many-branches,too-many-statements
 
     # Exit with appropriate code
     error_count = sum(1 for issue in all_issues if issue.rule.severity == RuleSeverity.ERROR)
-    
+
     if is_directory:
         if error_count > 0:
+            error_text = "s" if error_count != 1 else ""
+            file_text = "s" if files_with_errors != 1 else ""
             print(
-                f"\n⚠️  Found {error_count} critical error{'s' if error_count != 1 else ''} "
-                f"across {files_with_errors} file{'s' if files_with_errors != 1 else ''} that must be fixed."
+                f"\n⚠️  Found {error_count} critical error{error_text} "
+                f"across {files_with_errors} file{file_text} that must be fixed."
             )
             sys.exit(1)
         elif all_issues:
+            issue_text = "s" if len(all_issues) != 1 else ""
+            file_text = "s" if total_files_processed != 1 else ""
             print(
                 f"\n✅ No critical errors found, but {len(all_issues)} total "
-                f"issue{'s' if len(all_issues) != 1 else ''} detected across {total_files_processed} file{'s' if total_files_processed != 1 else ''}."
+                f"issue{issue_text} detected across {total_files_processed} file{file_text}."
             )
             sys.exit(0)
         else:
-            print(f"\n🎉 No issues found! All {total_files_processed} batch file{'s' if total_files_processed != 1 else ''} look{'s' if total_files_processed == 1 else ''} great!")
+            file_text = "s" if total_files_processed != 1 else ""
+            look_text = "s" if total_files_processed == 1 else ""
+            print(
+                f"\n🎉 No issues found! All {total_files_processed} "
+                f"batch file{file_text} look{look_text} great!"
+            )
             sys.exit(0)
     else:
         if error_count > 0:
