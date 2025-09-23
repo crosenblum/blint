@@ -22,8 +22,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pyinstaller
-          pip install -r requirements.txt
+          python -m pip install --upgrade setuptools
+          python -m pip install --upgrade wheel
+          pip install --upgrade pyinstaller
+          pip install -U -r requirements.txt
       - name: Build executable
         run: |
           pyinstaller --onefile --name blint blint.py
