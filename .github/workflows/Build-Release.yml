@@ -19,16 +19,23 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-      - name: Install dependencies
+      - name: Create virtual environment
         run: |
+          python -m venv venv
+      - name: Install dependencies in virtual environment
+        run: |
+          .\venv\Scripts\Activate.ps1
           python -m pip install --upgrade pip
           python -m pip install --upgrade setuptools
           python -m pip install --upgrade wheel
           pip install --upgrade pyinstaller
           pip install -U -r requirements.txt
+        shell: pwsh
       - name: Build executable
         run: |
+          .\venv\Scripts\Activate.ps1
           pyinstaller --onefile --name blint blint.py
+        shell: pwsh
       - name: Rename executable
         run: |
           Rename-Item -Path dist/blint.exe -NewName blint-py-v1.0.${{ github.run_number }}-windows.exe
