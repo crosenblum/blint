@@ -1,12 +1,10 @@
 # Blint 🚀
 
 **Blint** is a linter for Windows batch files (`.bat` and `.cmd`). It provides comprehensive static analysis to identify syntax errors, security vulnerabilities, performance issues, and style problems. Blint helps you write safer, more reliable, and maintainable batch scripts. Even in 2025, batch files deserve professional tooling! 💻
- 
-✅ **Thread-Safe Design** - Uses immutable rules and local variables for safe concurrent usage  
-✅ **Performance Optimized** - Handles large files (10MB+) efficiently  
-✅ **Enterprise Features** - Configurable rules, logging, robust error handling  
-✅ **Unicode Support** - International characters and filenames  
-✅ **Memory Efficient** - Optimized for production environments
+
+✅ **Configurable Options** - Configurable rules, logging, robust error handling
+✅ **Unicode Support** - International characters and filenames
+✅ **Performance Optimized** - Handles large files (10MB+) efficiently
 
 ## Features ✨
 
@@ -170,33 +168,7 @@ Blint provides comprehensive static analysis with **67 Built-in Rules** across 5
 
 📖 **For complete rule descriptions with examples and implementation details, see [docs/Batch-File-Linter-Requirements.md](docs/Batch-File-Linter-Requirements.md)**
 
-## 🔥 **Advanced Features**
-
-### Enterprise Integration
-```python
-# Custom logging configuration
-import logging
-logging.getLogger('blint').setLevel(logging.DEBUG)
-
-# Batch processing with error handling
-import os
-from pathlib import Path
-
-def lint_directory(directory_path):
-    """Lint all batch files in a directory."""
-    results = {}
-    for bat_file in Path(directory_path).glob("*.bat"):
-        try:
-            issues = blint.lint_batch_file(str(bat_file))
-            results[bat_file.name] = {
-                'issues': len(issues),
-                'errors': len([i for i in issues if i.rule.severity.value == 'Error']),
-                'security': len([i for i in issues if i.rule.severity.value == 'Security'])
-            }
-        except Exception as e:
-            results[bat_file.name] = {'error': str(e)}
-    return results
-```
+## 🔥 **Integration Example**
 
 ### CI/CD Integration
 ```yaml
