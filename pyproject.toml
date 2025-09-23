@@ -9,10 +9,12 @@ description = "A lightweight and easy-to-use linter for Windows batch files (.ba
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "crosenblum", email = "crosenblum@gmail.com"}
+    {name = "crosenblum", email = "crosenblum@gmail.com"},
+    {name = "tboy1337", email = "check@my-website.com"},
 ]
 maintainers = [
-    {name = "crosenblum", email = "crosenblum@gmail.com"}
+    {name = "crosenblum", email = "crosenblum@gmail.com"},
+    {name = "tboy1337", email = "check@my-website.com"},
 ]
 keywords = ["linting", "batch", "bat", "cmd", "windows", "script-analysis", "static-analysis"]
 classifiers = [

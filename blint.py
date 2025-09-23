@@ -15,7 +15,7 @@ Usage:
     import blint
     issues = blint.lint_batch_file("script.bat")
 
-Author: crosenblum
+Author: crosenblum & tboy1337
 Version: 1.0.0
 License: MIT
 """
@@ -33,7 +33,7 @@ from typing import DefaultDict, Dict, List, Optional, Set, Tuple, Union
 import warnings
 
 __version__ = "1.0.0"
-__author__ = "crosenblum"
+__author__ = "crosenblum & tboy1337"
 __license__ = "MIT"
 
 # Configure module-level logging
