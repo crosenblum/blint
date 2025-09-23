@@ -38,18 +38,18 @@ jobs:
         shell: pwsh
       - name: Rename executable
         run: |
-          Rename-Item -Path dist/blint.exe -NewName blint-py-v1.0.${{ github.run_number }}-windows.exe
+          Rename-Item -Path dist/blint.exe -NewName blint-v1.0.${{ github.run_number }}-windows.exe
         shell: pwsh
       - name: Zip the exe
         run: |
-          Compress-Archive -Path "dist/blint-py-v1.0.${{ github.run_number }}-windows.exe" -DestinationPath "dist/blint-py-v1.0.${{ github.run_number }}-windows.zip"
+          Compress-Archive -Path "dist/blint-v1.0.${{ github.run_number }}-windows.exe" -DestinationPath "dist/blint-v1.0.${{ github.run_number }}-windows.zip"
         shell: pwsh
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
-          path: dist/blint-py-v1.0.${{ github.run_number }}-windows.zip
-          
+          path: dist/blint-v1.0.${{ github.run_number }}-windows.zip
+
   create-release:
     needs: build-windows
     runs-on: ubuntu-latest
