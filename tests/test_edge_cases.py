@@ -1200,7 +1200,7 @@ class TestGlobalChecks:
         # This should normalize to "copy FILE to FILE with extra text here" which is > 20 chars
         issues = _check_code_duplication(lines)
         duplication_issues = [i for i in issues if i.rule.code == "P002"]
-        assert len(duplication_issues) == 3  # Lines 2, 3, and 4 should be flagged
+        assert len(duplication_issues) == 3  # Lines 2, 3 and 4 should be flagged
 
     def test_no_code_duplication_with_few_commands(self) -> None:
         """Test that code duplication requires 3+ similar commands."""

@@ -1,6 +1,6 @@
 # Blint 🚀
 
-**Blint** is a linter for Windows batch files (`.bat` and `.cmd`). It provides comprehensive static analysis to identify syntax errors, security vulnerabilities, performance issues, and style problems. Blint helps you write safer, more reliable, and maintainable batch scripts. Even in 2025, batch files deserve professional tooling! 💻
+**Blint** is a linter for Windows batch files (`.bat` and `.cmd`). It provides comprehensive static analysis to identify syntax errors, security vulnerabilities, performance issues and style problems. Blint helps you write safer, more reliable and maintainable batch scripts. Even in 2025, batch files deserve professional tooling! 💻
 
 ✅ **Configurable Options** - Configurable rules, logging, robust error handling
 ✅ **Unicode Support** - International characters and filenames
@@ -31,7 +31,7 @@
 - **Cross-Platform Compatibility**: Warns about Windows version issues
 - **Thread-Safe Design**: Safe for concurrent usage with immutable rules and local state
 - **Large File Handling**: Efficiently processes files up to 10MB+ with performance warnings
-- **Robust Encoding Detection**: Handles UTF-8, UTF-16, Latin-1, and 6 more encoding formats
+- **Robust Encoding Detection**: Handles UTF-8, UTF-16, Latin-1 and 6 more encoding formats
 
 ## Installation 🛠️
 

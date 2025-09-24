@@ -1,7 +1,7 @@
 """Blint - A professional-grade batch file linter for Windows.
 
 This module provides comprehensive functionality to lint Windows batch files (.bat and .cmd)
-for common syntax errors, style issues, security vulnerabilities, and performance problems.
+for common syntax errors, style issues, security vulnerabilities and performance problems.
 
 Features:
 - 60+ built-in rules across 5 severity levels
@@ -53,7 +53,7 @@ class RuleSeverity(Enum):
 
 @dataclass
 class Rule:
-    """Represents a linting rule with code, explanation, and recommendation."""
+    """Represents a linting rule with code, explanation and recommendation."""
 
     code: str
     name: str
@@ -438,7 +438,7 @@ RULES: Dict[str, Rule] = {
         name="Missing file header documentation",
         severity=RuleSeverity.STYLE,
         explanation="Scripts should include header documentation for maintainability",
-        recommendation="Add REM comments at the top describing script purpose, author, and date",
+        recommendation="Add REM comments at the top describing script purpose, author and date",
     ),
     "S014": Rule(
         code="S014",
@@ -870,7 +870,7 @@ Examples:
       Shows summary and detailed errors for a single file.
 
   python blint.py /project/scripts --summary --severity
-      Shows summary, detailed errors, and severity info for all batch files in directory.
+      Shows summary, detailed errors and severity info for all batch files in directory.
 
 If no <path> is specified or '--help' is passed, this help menu will be displayed.
 """
@@ -1892,7 +1892,7 @@ def lint_batch_file(  # pylint: disable=too-many-locals
 
     Returns:
         List of LintIssue objects containing detailed issue information.
-        Each issue includes line number, rule details, and contextual information.
+        Each issue includes line number, rule details and contextual information.
 
     Raises:
         OSError: If file cannot be read or encoding issues occur
